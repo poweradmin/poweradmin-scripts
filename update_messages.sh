@@ -9,7 +9,7 @@ then
 fi
 
 # get list of available locales, excluding english
-dirs=`ls ../locale`
+dirs=`ls ../locale | grep -v pot`
 
 # update every messages.mo for every locale
 for locale in $dirs; do
@@ -27,7 +27,6 @@ for locale in $dirs; do
 	else
 		msgfmt $name.po -o messages.mo
 	fi
-
 
 	cd ../../
 done 
