@@ -2,8 +2,8 @@
 
 DB_PATH="../../db"
 DB_FILE="powerdns.db"
-SQLITE_BIN=sqlite	# for SQLite 2.x
-#SQLITE_BIN=sqlite3
+#SQLITE_BIN=sqlite	# for SQLite 2.x
+SQLITE_BIN=sqlite3
 
 # check if directory exists
 if [ ! -e $DB_PATH ]
@@ -19,8 +19,8 @@ then
 fi
 
 # import db scheme and data
-cat ../docs/poweradmin-sqlite-db-structure.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
-cat ../docs/powerdns-sqlite-db-structure.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
+#cat ../sql/poweradmin-sqlite-db-structure.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
+cat ../sql/pdns/4.5.x/schema.sqlite3.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
 
 # change access rights
 chmod 777 $DB_PATH
