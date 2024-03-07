@@ -9,9 +9,6 @@ my @date = localtime(time);
 my $curr_year = $date[5] + 1900;
 my $last_year = $curr_year - 1;
 
-$curr_year = 2023;
-$last_year = 2022;
-
 sub process_file {
 	my $fn = $File::Find::name;
 
