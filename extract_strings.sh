@@ -17,7 +17,6 @@ find . -name "*.php" | \
 && sed -i -e 's/Language: /Language: en_EN/' locale/i18n-template-php.pot \
 && sed -i -e 's/PACKAGE/Poweradmin/' locale/i18n-template-php.pot \
 && sed -i -e 's/(C) YEAR/(C) '"$YEAR"'/' locale/i18n-template-php.pot \
-&& sed -i -e 's/FIRST AUTHOR <EMAIL@ADDRESS>, YEAR/Rejo Zenger <rejo@poweradmin.org>, 2008/' locale/i18n-template-php.pot \
 && sed -i -e 's/CHARSET/UTF-8/' locale/i18n-template-php.pot
 
 # extract strings from database structure
