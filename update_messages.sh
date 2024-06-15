@@ -17,7 +17,7 @@ for locale in $dirs; do
 
 	cd ../locale/$locale/LC_MESSAGES
 
-	msgfmt -c messages.po
+	msgfmt -v -C messages.po
 	msgfmt messages.po -o messages.mo
 
 	cd ../../
