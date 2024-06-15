@@ -9,7 +9,7 @@ find . -name "*.php" | \
 		--no-wrap \
 		-L PHP \
 		--copyright-holder="Poweradmin Development Team" \
-		--msgid-bugs-address="edmondas@poweradmin.org" \
+		--msgid-bugs-address="edmondas@girkantas.lt" \
 		-o locale/i18n-template-php.pot \
 		--package-name=Poweradmin \
 		--package-version="$VERSION" \
