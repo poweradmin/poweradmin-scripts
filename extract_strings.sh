@@ -18,7 +18,3 @@ find . -name "*.php" | \
 && sed -i -e 's/PACKAGE/Poweradmin/' locale/i18n-template-php.pot \
 && sed -i -e 's/(C) YEAR/(C) '"$YEAR"'/' locale/i18n-template-php.pot \
 && sed -i -e 's/CHARSET/UTF-8/' locale/i18n-template-php.pot
-
-# extract strings from database structure
-cat install/database-structure.inc.php | grep "array([0-9]" | \
-	awk -F\' '{ print "msgid \""$4"\"\nmsgstr \"\"\n"; }' >>locale/i18n-template-db.pot
