@@ -92,7 +92,7 @@ extract_translations() {
 
     while IFS= read -r line; do
         ((line_number++))
-        while [[ $line =~ \{%[[:space:]]*trans[[:space:]]*%\}(.*)\{%[[:space:]]*endtrans[[:space:]]*%\} ]]; do
+        while [[ $line =~ \{%[[:space:]]*trans[[:space:]]*%\}([^{]*)\{%[[:space:]]*endtrans[[:space:]]*%\} ]]; do
             local translation="${BASH_REMATCH[1]}"
             translation=$(echo "$translation" | xargs)
             escaped_translation=$(escape_string "$translation")
@@ -100,7 +100,7 @@ extract_translations() {
             echo "msgid \"$escaped_translation\""
             echo "msgstr \"\""
             echo
-            line=${line#*\{%[[:space:]]*endtrans[[:space:]]*%\}}
+            line=${line#*"${BASH_REMATCH[0]}"}
         done
     done < "$file"
 }
