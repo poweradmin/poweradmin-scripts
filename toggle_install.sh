@@ -1,7 +1,7 @@
 #!/bin/bash
 
-INSTALL_DIR="../install"
-BACKUP_DIR="../install.old"
+INSTALL_DIR="install"
+BACKUP_DIR="install.old"
 
 if [ -d "$INSTALL_DIR" ]; then
     echo "Found 'install' directory in the parent folder. Renaming to 'install.old'"
