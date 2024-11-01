@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DB_PATH="../../db"
+DB_PATH="../db"
 DB_FILE="powerdns.db"
 #SQLITE_BIN=sqlite	# for SQLite 2.x
 SQLITE_BIN=sqlite3
@@ -19,8 +19,7 @@ then
 fi
 
 # import db scheme and data
-#cat ../sql/poweradmin-sqlite-db-structure.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
-cat ../sql/pdns/4.5.x/schema.sqlite3.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
+cat sql/pdns/45/schema.sqlite3.sql | $SQLITE_BIN $DB_PATH/$DB_FILE
 
 # change access rights
 chmod 777 $DB_PATH
