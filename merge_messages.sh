@@ -19,5 +19,8 @@ for locale in $dirs; do
 
   msgmerge --backup=none -N -U messages.po ../../i18n-template-php.pot
 
+  msgen ../../i18n-template-php.pot > default.po
+  msgcat --use-first messages.po default.po -o messages.po
+
 	cd ../../
 done 
