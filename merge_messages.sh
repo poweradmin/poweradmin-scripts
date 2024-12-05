@@ -1,10 +1,10 @@
 #!/bin/sh
 
-result=`msgfmt 2>/dev/null`
+result=`msgmerge 2>/dev/null`
 
 if [ "$?" = "127" ]
 then
-	echo "Error: can't find <msgfmt> executable!"
+	echo "Error: can't find <msgmerge> executable!"
 	exit
 fi
 
@@ -17,8 +17,7 @@ for locale in $dirs; do
 
 	cd ../locale/$locale/LC_MESSAGES
 
-	msgfmt -v -C messages.po
-	msgfmt messages.po -o messages.mo
+  msgmerge --backup=none -N -U messages.po ../../i18n-template-php.pot
 
 	cd ../../
 done 
