@@ -15,6 +15,5 @@ dirs=$(find ../locale -maxdepth 1 -type d ! -name 'pot' -exec basename {} \; | t
 for locale in $dirs; do
 	echo "Updating $locale locale"
 
-  msgfmt -v -C ../locale/"$locale"/LC_MESSAGES/messages.po
-  msgfmt ../locale/"$locale"/LC_MESSAGES/messages.po -o ../locale/"$locale"/LC_MESSAGES/messages.mo
+  msgfmt -v -C ../locale/"$locale"/LC_MESSAGES/messages.po -o ../locale/"$locale"/LC_MESSAGES/messages.mo
 done
