@@ -1,26 +1,49 @@
-#!/bin/sh
+#!/bin/bash
 
-result=`msgmerge 2>/dev/null`
+set -euo pipefail
 
-if [ "$?" = "127" ]
-then
-	echo "Error: can't find <msgmerge> executable!"
-	exit
+# Check required commands
+for cmd in msgmerge msgen msgcat; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "Error: '$cmd' command not found"
+        exit 1
+    fi
+done
+
+LOCALE_DIR="../locale"
+TEMPLATE="i18n-template-php.pot"
+
+# Check if locale directory exists
+if [ ! -d "$LOCALE_DIR" ]; then
+    echo "Error: Locale directory not found: $LOCALE_DIR"
+    exit 1
 fi
 
-# get list of available locales, excluding template
-dirs=`ls ../locale | grep -v pot`
+# Check if template file exists
+if [ ! -f "$LOCALE_DIR/$TEMPLATE" ]; then
+    echo "Error: Template file not found: $LOCALE_DIR/$TEMPLATE"
+    exit 1
+fi
 
-# update every messages.mo for every locale
+# Get list of available locales, excluding template
+dirs=$(ls "$LOCALE_DIR" | grep -v pot)
+
+# Update every messages.mo for every locale
 for locale in $dirs; do
-	echo "Updating $locale locale"
+    echo "Updating $locale locale"
 
-	cd ../locale/$locale/LC_MESSAGES
+    cd "$LOCALE_DIR/$locale/LC_MESSAGES" || {
+        echo "Error: Failed to change directory to $LOCALE_DIR/$locale/LC_MESSAGES"
+        exit 1
+    }
 
-  msgmerge --backup=none -N -U messages.po ../../i18n-template-php.pot
+    msgmerge --backup=none -N -U messages.po "../../$TEMPLATE"
 
-  msgen ../../i18n-template-php.pot > default.po
-  msgcat --use-first messages.po default.po -o messages.po
+    msgen "../../$TEMPLATE" > default.po
+    msgcat --use-first messages.po default.po -o messages.po
 
-	cd ../../
-done 
+    # Clean up temporary file
+    rm -f default.po
+
+    cd "../../" || exit 1
+done
