@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-LIB_DIR="lib"
+LIB_DIR="../lib"
 
 IMPORTANT_STRING="Poweradmin, a friendly web-based admin tool for PowerDNS."
 
