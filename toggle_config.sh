@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CONFIG_FILE="inc/config.inc.php"
-BACKUP_CONFIG_FILE="inc/config.old.php"
+CONFIG_FILE="config/settings.php"
+BACKUP_CONFIG_FILE="config/settings.old.php"
 
 if [ -f "$CONFIG_FILE" ]; then
     echo "Found configuration file. Creating backup"
