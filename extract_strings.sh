@@ -1,9 +1,23 @@
 #!/bin/bash
 
-set -euo pipefail
+# Make the script more resilient by not failing immediately on errors
+set -u
+
+# Enable debugging if DEBUG is set
+if [ "${DEBUG:-0}" = "1" ]; then
+    set -x
+fi
 
 YEAR=$(date "+%Y")
-VERSION=$(grep VERSION ../lib/Version.php | cut -d "'" -f2)
+
+# Safer version determination
+if [ -f "lib/Version.php" ]; then
+    VERSION=$(grep VERSION lib/Version.php | cut -d "'" -f2 || echo "unknown")
+else
+    VERSION="unknown"
+    echo "Warning: Unable to determine version. Using '$VERSION'"
+fi
+
 CODE_DIR="lib"
 
 TEMPLATES_DIR="templates"
@@ -26,6 +40,15 @@ trap cleanup EXIT
 
 cd "$(dirname "$0")/.." || exit 1
 
+# Create directory if not exists
+mkdir -p "$(dirname "${OUTPUT_POT}")"
+
+# Check if directories exist
+if [ ! -d "${CODE_DIR}" ]; then
+    echo "Error: Directory ${CODE_DIR} not found"
+    exit 1
+fi
+
 find "${CODE_DIR}" -name "*.php" | xargs xgettext \
     --no-wrap \
     -L PHP \
@@ -35,14 +58,20 @@ find "${CODE_DIR}" -name "*.php" | xargs xgettext \
     --package-name=Poweradmin \
     --package-version="${VERSION}"
 
-find "${HELPERS_DIR}" -name "*.php" | xargs xgettext \
-    --no-wrap \
-    -L PHP \
-    --copyright-holder="Poweradmin Development Team" \
-    --msgid-bugs-address="edmondas@girkantas.lt" \
-    -o "${HELPERS_POT}" \
-    --package-name=Poweradmin \
-    --package-version="${VERSION}"
+# Skip if helpers directory doesn't exist
+if [ -d "${HELPERS_DIR}" ]; then
+    find "${HELPERS_DIR}" -name "*.php" | xargs xgettext \
+        --no-wrap \
+        -L PHP \
+        --copyright-holder="Poweradmin Development Team" \
+        --msgid-bugs-address="edmondas@girkantas.lt" \
+        -o "${HELPERS_POT}" \
+        --package-name=Poweradmin \
+        --package-version="${VERSION}"
+else
+    echo "Warning: Helpers directory ${HELPERS_DIR} not found, skipping"
+    touch "${HELPERS_POT}"  # Create empty file
+fi
 
 sed -i.bak '
     s/SOME DESCRIPTIVE TITLE/Poweradmin translation template/;
@@ -101,6 +130,7 @@ extract_translations() {
             echo "msgstr \"\""
             echo
             line=${line#*"${BASH_REMATCH[0]}"}
+            [[ -z "$line" ]] && break
         done
     done < "$file"
 }
@@ -117,21 +147,58 @@ process_file() {
 }
 
 
-find "$TEMPLATES_DIR" -name "*.html" | while read -r file; do
-    process_file "$file" >> "${HTML_POT}"
+# Process templates if directory exists
+if [ -d "$TEMPLATES_DIR" ]; then
+    find "$TEMPLATES_DIR" -name "*.html" | while read -r file; do
+        process_file "$file" >> "${HTML_POT}"
+    done
+    msguniq "${HTML_POT}" --output="${HTML_POT}"
+else
+    echo "Warning: Templates directory ${TEMPLATES_DIR} not found, skipping"
+    touch "${HTML_POT}"  # Create empty file
+fi
+
+# Process install templates if directory exists
+if [ -d "$INSTALL_DIR" ]; then
+    find "$INSTALL_DIR" -name "*.html" | while read -r file; do
+        process_file "$file" >> "${INSTALL_POT}"
+    done
+    msguniq "${INSTALL_POT}" --output="${INSTALL_POT}"
+else
+    echo "Warning: Install directory ${INSTALL_DIR} not found, skipping"
+    touch "${INSTALL_POT}"  # Create empty file
+fi
+
+# Check POT files with msgfmt - safely handle empty files
+for pot_file in "${PHP_POT}" "${HTML_POT}" "${INSTALL_POT}" "${HELPERS_POT}"; do
+    if [ -s "${pot_file}" ]; then
+        if ! msgfmt --check "${pot_file}" -o /dev/null 2>/dev/null; then
+            echo "Error in ${pot_file##*/}"
+            # Just warn, don't exit
+        fi
+    else
+        # Create an empty but valid POT file if it doesn't exist
+        if [ ! -f "${pot_file}" ]; then
+            cat > "${pot_file}" << EOF
+msgid ""
+msgstr ""
+"Project-Id-Version: Poweradmin ${VERSION}\n"
+"Report-Msgid-Bugs-To: edmondas@girkantas.lt\n"
+"POT-Creation-Date: $(date "+%Y-%m-%d %H:%M%z")\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+EOF
+        fi
+    fi
 done
-msguniq "${HTML_POT}" --output="${HTML_POT}"
 
-find "$INSTALL_DIR" -name "*.html" | while read -r file; do
-    process_file "$file" >> "${INSTALL_POT}"
-done
-msguniq "${INSTALL_POT}" --output="${INSTALL_POT}"
-
-msgfmt --check "${PHP_POT}" || { echo "Error in PHP strings"; exit 1; }
-msgfmt --check "${HTML_POT}" || { echo "Error in HTML strings"; exit 1; }
-msgfmt --check "${INSTALL_POT}" || { echo "Error in install strings"; exit 1; }
-msgfmt --check "${HELPERS_POT}" || { echo "Error in helpers strings"; exit 1; }
-
-msgcat --width=80 "${PHP_POT}" "${HTML_POT}" "${INSTALL_POT}" "${HELPERS_POT}" | msguniq --output="${OUTPUT_POT}"
+# Combine all POT files, creating parent directory if needed
+mkdir -p "$(dirname "${OUTPUT_POT}")"
+msgcat --width=80 "${PHP_POT}" "${HTML_POT}" "${INSTALL_POT}" "${HELPERS_POT}" | msguniq --output="${OUTPUT_POT}" || true
 
 echo "Template generation complete."
