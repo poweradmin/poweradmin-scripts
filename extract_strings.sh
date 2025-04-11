@@ -3,6 +3,18 @@
 # Make the script more resilient by not failing immediately on errors
 set -u
 
+# Check if the script is being run from the project root
+check_run_from_project_root() {
+    local script_name=$(basename "$0")
+    if [[ "$0" != "./scripts/$script_name" && "$0" != "scripts/$script_name" ]]; then
+        echo "Error: This script should be run from the project root as:"
+        echo "  ./scripts/$script_name"
+        echo ""
+        echo "Current run path: $0"
+        exit 1
+    fi
+}
+
 # Enable debugging if DEBUG is set
 if [ "${DEBUG:-0}" = "1" ]; then
     set -x
@@ -38,7 +50,13 @@ cleanup() {
 
 trap cleanup EXIT
 
-cd "$(dirname "$0")/.." || exit 1
+# Check script is run from project root
+check_run_from_project_root
+
+# Get the absolute path to the project root directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT" || { echo "Error: Failed to change to project root directory: $PROJECT_ROOT"; exit 1; }
 
 # Create directory if not exists
 mkdir -p "$(dirname "${OUTPUT_POT}")"
@@ -56,7 +74,8 @@ find "${CODE_DIR}" -name "*.php" | xargs xgettext \
     --msgid-bugs-address="edmondas@girkantas.lt" \
     -o "${PHP_POT}" \
     --package-name=Poweradmin \
-    --package-version="${VERSION}"
+    --package-version="${VERSION}" \
+    --from-code=UTF-8
 
 # Skip if helpers directory doesn't exist
 if [ -d "${HELPERS_DIR}" ]; then
@@ -67,7 +86,8 @@ if [ -d "${HELPERS_DIR}" ]; then
         --msgid-bugs-address="edmondas@girkantas.lt" \
         -o "${HELPERS_POT}" \
         --package-name=Poweradmin \
-        --package-version="${VERSION}"
+        --package-version="${VERSION}" \
+        --from-code=UTF-8
 else
     echo "Warning: Helpers directory ${HELPERS_DIR} not found, skipping"
     touch "${HELPERS_POT}"  # Create empty file
@@ -112,47 +132,95 @@ msgstr ""
 EOF
 
 escape_string() {
+    # Escape double quotes and handle single quotes properly for gettext
     echo "$1" | sed 's/"/\\"/g'
 }
 
 extract_translations() {
     local file="$1"
-    local line_number=0
+    
+    # More direct approach with Python that handles all edge cases
+    python3 -c "
+import re
+import sys
 
-    while IFS= read -r line; do
-        ((line_number++))
-        while [[ $line =~ \{%[[:space:]]*trans[[:space:]]*%\}([^{]*)\{%[[:space:]]*endtrans[[:space:]]*%\} ]]; do
-            local translation="${BASH_REMATCH[1]}"
-            translation=$(echo "$translation" | xargs)
-            escaped_translation=$(escape_string "$translation")
-            echo "#: $file:$line_number"
-            echo "msgid \"$escaped_translation\""
-            echo "msgstr \"\""
-            echo
-            line=${line#*"${BASH_REMATCH[0]}"}
-            [[ -z "$line" ]] && break
-        done
-    done < "$file"
+def extract_translations(file_path):
+    with open(file_path, 'r') as f:
+        content = f.read()
+    
+    # Match all trans blocks with regex that supports special chars
+    pattern = re.compile(r'{%\s*trans\s*%}(.*?){%\s*endtrans\s*%}', re.DOTALL)
+    
+    # Find line numbers for each match
+    lines = content.split('\\n')
+    match_line_nums = {}
+    
+    for i, line in enumerate(lines, 1):
+        matches = pattern.findall(line)
+        for match in matches:
+            # Trim whitespace and skip empty translations
+            trans_text = match.strip()
+            if trans_text:
+                # Escape double quotes for gettext
+                escaped = trans_text.replace('\"', '\\\\\"')
+                # Store with line number
+                print(f'#: {file_path}:{i}')
+                print(f'msgid \"{escaped}\"')
+                print(f'msgstr \"\"')
+                print('')
+
+extract_translations('$file')
+"
 }
 
 process_file() {
     local file_path="$1"
+    local output_file="$2"
 
     if [[ ! -f "$file_path" ]]; then
         echo "Error: File not found: $file_path" >&2
         return 1
     fi
 
-    extract_translations "$file_path"
+    extract_translations "$file_path" > "${TEMP_DIR}/single_file.pot"
+    
+    # Check if file has valid content before appending
+    if [ -s "${TEMP_DIR}/single_file.pot" ]; then
+        cat "${TEMP_DIR}/single_file.pot" >> "$output_file"
+    fi
 }
 
 
 # Process templates if directory exists
 if [ -d "$TEMPLATES_DIR" ]; then
-    find "$TEMPLATES_DIR" -name "*.html" | while read -r file; do
-        process_file "$file" >> "${HTML_POT}"
+    # Clear the POT file first
+    cat > "${HTML_POT}" << EOF
+msgid ""
+msgstr ""
+"Project-Id-Version: Poweradmin ${VERSION}\n"
+"Report-Msgid-Bugs-To: edmondas@girkantas.lt\n"
+"POT-Creation-Date: $(date "+%Y-%m-%d %H:%M%z")\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+EOF
+
+    # Create a temp file for processing
+    TEMP_HTML_POT="${TEMP_DIR}/temp_html.pot"
+    > "${TEMP_HTML_POT}"  # Clear the temp file
+    
+    find "$TEMPLATES_DIR" \( -name "*.html" -o -name "*.html.twig" \) | while read -r file; do
+        process_file "$file" "${TEMP_HTML_POT}"
     done
-    msguniq "${HTML_POT}" --output="${HTML_POT}"
+    
+    # Use msguniq to deduplicate
+    if [ -s "${TEMP_HTML_POT}" ]; then
+        msguniq "${TEMP_HTML_POT}" --force-po >> "${HTML_POT}" || true
+    fi
 else
     echo "Warning: Templates directory ${TEMPLATES_DIR} not found, skipping"
     touch "${HTML_POT}"  # Create empty file
@@ -160,10 +228,34 @@ fi
 
 # Process install templates if directory exists
 if [ -d "$INSTALL_DIR" ]; then
-    find "$INSTALL_DIR" -name "*.html" | while read -r file; do
-        process_file "$file" >> "${INSTALL_POT}"
+    # Clear the POT file first
+    cat > "${INSTALL_POT}" << EOF
+msgid ""
+msgstr ""
+"Project-Id-Version: Poweradmin ${VERSION}\n"
+"Report-Msgid-Bugs-To: edmondas@girkantas.lt\n"
+"POT-Creation-Date: $(date "+%Y-%m-%d %H:%M%z")\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+EOF
+
+    # Create a temp file for processing
+    TEMP_INSTALL_POT="${TEMP_DIR}/temp_install.pot"
+    > "${TEMP_INSTALL_POT}"  # Clear the temp file
+    
+    find "$INSTALL_DIR" \( -name "*.html" -o -name "*.html.twig" \) | while read -r file; do
+        process_file "$file" "${TEMP_INSTALL_POT}"
     done
-    msguniq "${INSTALL_POT}" --output="${INSTALL_POT}"
+    
+    # Use msguniq to deduplicate
+    if [ -s "${TEMP_INSTALL_POT}" ]; then
+        msguniq "${TEMP_INSTALL_POT}" --force-po >> "${INSTALL_POT}" || true
+    fi
 else
     echo "Warning: Install directory ${INSTALL_DIR} not found, skipping"
     touch "${INSTALL_POT}"  # Create empty file
@@ -197,8 +289,72 @@ EOF
     fi
 done
 
-# Combine all POT files, creating parent directory if needed
+# Process each POT file with msguniq separately before combining
+# Skip the pre-processing steps as they're now handled in the individual file processing sections
+
+# Combine all extracted strings into a single POT file
 mkdir -p "$(dirname "${OUTPUT_POT}")"
-msgcat --width=80 "${PHP_POT}" "${HTML_POT}" "${INSTALL_POT}" "${HELPERS_POT}" | msguniq --output="${OUTPUT_POT}" || true
+
+# Create a fresh POT file with proper headers
+cat > "${OUTPUT_POT}" << EOF
+# Poweradmin translation template.
+# Copyright (C) ${YEAR} Poweradmin Development Team
+# This file is distributed under the same license as the Poweradmin package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Poweradmin ${VERSION}\n"
+"Report-Msgid-Bugs-To: edmondas@girkantas.lt\n"
+"POT-Creation-Date: $(date "+%Y-%m-%d %H:%M%z")\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en_EN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+EOF
+
+# Function to safely append a POT file to the combined output
+# Extract strings only, not headers
+safe_append_pot() {
+    local source="$1"
+    local target="$2"
+    
+    if [ -s "$source" ]; then
+        # Process each msgid/msgstr group in the file, skipping headers
+        # We look for lines starting with "#:" and collect everything up to the next empty line
+        awk '
+        BEGIN { in_record = 0; }
+        /^#:/ { 
+            in_record = 1; 
+            record = $0; 
+            next; 
+        }
+        in_record && /^$/ { 
+            print record; 
+            in_record = 0; 
+            record = ""; 
+            print ""; 
+            next; 
+        }
+        in_record { 
+            record = record "\n" $0; 
+        }
+        ' "$source" | grep -v "Project-Id-Version" >> "$target"
+    fi
+}
+
+# Append strings from each POT file to the combined file
+safe_append_pot "${PHP_POT}" "${OUTPUT_POT}"
+safe_append_pot "${HTML_POT}" "${OUTPUT_POT}"
+safe_append_pot "${INSTALL_POT}" "${OUTPUT_POT}"
+safe_append_pot "${HELPERS_POT}" "${OUTPUT_POT}"
+
+# Use msguniq to remove any duplicates
+FINAL_POT="${TEMP_DIR}/final.pot"
+msguniq "${OUTPUT_POT}" --output="${FINAL_POT}" --force-po && cp "${FINAL_POT}" "${OUTPUT_POT}" || echo "Warning: Failed to deduplicate the final POT file"
 
 echo "Template generation complete."
