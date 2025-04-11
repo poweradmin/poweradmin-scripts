@@ -243,10 +243,6 @@ with open('$ENGLISH_TRANS_MAP', 'r') as f:
 with open('$LOCALE_MESSAGES_DIR/messages.po', 'r') as f:
     content = f.read()
 
-# Make a backup of the file
-with open('$LOCALE_MESSAGES_DIR/messages.po.bak2', 'w') as f:
-    f.write(content)
-
 # Split into entries
 entries = re.split(r'\n\n+', content)
 header = entries[0]
