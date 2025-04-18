@@ -266,7 +266,10 @@ with open('$TEMP_PO', 'w') as f:
             # If msgstr is empty (just \"\") and we have an English translation, use it
             if (msgstr.strip() == '\"\"' or msgstr == '\"\"') and msgid in english_trans:
                 # Add a special translator comment to mark this as an auto-filled English fallback
-                if not '#, auto-english-fallback' in entry:
+                if '#, auto-english-fallback' not in entry:
+                    # Remove any existing fuzzy flag if present since we're replacing this with a concrete translation
+                    entry = re.sub(r'#, fuzzy\n', '', entry)
+                    
                     if '#:' in entry:
                         # Insert after the file reference line
                         entry = re.sub(r'(#:.*(\n#:.*)*)', r'\\1\n#, auto-english-fallback', entry)
@@ -275,7 +278,7 @@ with open('$TEMP_PO', 'w') as f:
                         entry = '#, auto-english-fallback\n' + entry
                 
                 # Replace the empty msgstr with the English translation
-                entry = entry.replace('msgstr \"\"', 'msgstr ' + english_trans[msgid])
+                entry = re.sub(r'msgstr \"\"', 'msgstr ' + english_trans[msgid], entry)
                 fallback_count += 1
         
         f.write(entry + '\n\n')
