@@ -1,7 +1,6 @@
 #!/bin/bash
 
 composer install
-composer format:lib
-composer format:tests
+composer format:all
 composer install --no-dev
 ./scripts/optimize-for-release.sh
