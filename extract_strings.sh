@@ -88,6 +88,18 @@ if [ -d "${HELPERS_DIR}" ]; then
         --package-name=Poweradmin \
         --package-version="${VERSION}" \
         --from-code=UTF-8
+    
+    # Fix the headers in helpers POT file too
+    if [ -s "${HELPERS_POT}" ]; then
+        sed -i.bak '
+            s/SOME DESCRIPTIVE TITLE/Poweradmin translation template/;
+            s/Language: /Language: en_EN/;
+            s/PACKAGE/Poweradmin/;
+            s/(C) YEAR/(C) '"${YEAR}"'/;
+            s/CHARSET/UTF-8/;
+            /Plural-Forms:/d
+        ' "${HELPERS_POT}" && rm "${HELPERS_POT}.bak"
+    fi
 else
     echo "Warning: Helpers directory ${HELPERS_DIR} not found, skipping"
     touch "${HELPERS_POT}"  # Create empty file
@@ -99,6 +111,7 @@ sed -i.bak '
     s/PACKAGE/Poweradmin/;
     s/(C) YEAR/(C) '"${YEAR}"'/;
     s/CHARSET/UTF-8/;
+    /Plural-Forms:/d
 ' "${PHP_POT}" && rm "${PHP_POT}.bak"
 
 cat > "${HTML_POT}" << EOF
