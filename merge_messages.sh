@@ -32,26 +32,68 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCALE_DIR="$PROJECT_ROOT/locale"
 TEMPLATE="i18n-template-php.pot"
 
-# Function to clean up obsolete translations (removes them)
+# Function to clean up only truly obsolete translations (preserves valid ones)
 cleanup_obsolete_translations() {
     local po_file=$1
     
-    echo "  - Cleaning up obsolete translations in $po_file"
+    echo "  - Reviewing obsolete translations in $po_file"
     
     # Count obsolete translations
     local obsolete_count=$(grep -c "#~ msgid" "$po_file" || echo 0)
     echo "    Found $obsolete_count obsolete translations"
     
     if [ "$obsolete_count" -gt 0 2>/dev/null ]; then
-        # Remove all obsolete entries
-        msgattrib --no-obsolete "$po_file" -o "$po_file.clean"
+        # Only remove obsolete entries that are empty or clearly outdated
+        # Keep obsolete entries that have actual translations as they might be useful
+        python3 -c "
+import re
+import sys
+
+with open('$po_file', 'r') as f:
+    content = f.read()
+
+# Split content into sections
+sections = re.split(r'\n\n+', content)
+header = sections[0]
+entries = sections[1:]
+
+kept_obsolete = 0
+removed_obsolete = 0
+
+with open('$po_file.clean', 'w') as f:
+    f.write(header + '\n\n')
+    
+    for entry in entries:
+        # Check if this is an obsolete entry
+        if '#~' in entry:
+            # Check if it has a meaningful translation (not empty)
+            msgstr_match = re.search(r'#~ msgstr \"(.+?)\"', entry, re.DOTALL)
+            if msgstr_match and msgstr_match.group(1).strip():
+                # Keep obsolete entries with actual translations - just comment them better
+                entry = re.sub(r'^#~ ', '# OBSOLETE: ', entry, flags=re.MULTILINE)
+                f.write(entry + '\n\n')
+                kept_obsolete += 1
+            else:
+                # Remove empty obsolete entries
+                removed_obsolete += 1
+        else:
+            # Keep all non-obsolete entries
+            f.write(entry + '\n\n')
+
+print(f'    Kept {kept_obsolete} obsolete entries with translations')
+print(f'    Removed {removed_obsolete} empty obsolete entries')
+"
         
-        # Replace original with cleaned file
-        mv "$po_file.clean" "$po_file"
+        # Replace original with cleaned file if Python script succeeded
+        if [ -f "$po_file.clean" ]; then
+            mv "$po_file.clean" "$po_file"
+        else
+            echo "    Warning: Failed to clean obsolete translations, keeping original"
+        fi
         
         # Verify results
         local new_count=$(grep -c "^msgid" "$po_file" || echo 0)
-        echo "    Cleaned file now has $new_count total entries"
+        echo "    File now has $new_count total entries"
     fi
 }
 
@@ -108,7 +150,7 @@ else
     echo "Warning: extract_strings.sh not found or not executable"
 fi
 
-# Clean up obsolete translations by default with no command line options
+# Clean up only truly obsolete translations (preserve those with actual translations)
 
 # Get list of available locales, excluding template
 dirs=$(ls "$LOCALE_DIR" | grep -v pot)
@@ -126,27 +168,136 @@ fi
 # Create backup before merging
 cp "$ENGLISH_MESSAGES_DIR/messages.po" "$ENGLISH_MESSAGES_DIR/messages.po.bak"
 
-# Use a simpler approach to ensure English has matching translations
-# Create a fresh English translation file from the template
-msginit --no-translator --locale=en_EN --input="$LOCALE_DIR/$TEMPLATE" --output="$ENGLISH_MESSAGES_DIR/messages.po.new"
+# Preserve existing English translations and only add new ones
+echo "  - Preserving existing English translations and adding new entries"
 
-# Now make sure all msgstr entries match their msgid
-msgfilter --keep-header -i "$ENGLISH_MESSAGES_DIR/messages.po.new" -o "$ENGLISH_MESSAGES_DIR/messages.po" cat
+# First, check if the existing file has syntax errors and fix them
+if ! msgfmt --check "$ENGLISH_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
+    echo "  - Existing file has syntax issues, fixing before merge..."
+    
+    # Use sed to fix specific broken lines (safer than Python processing)
+    cp "$ENGLISH_MESSAGES_DIR/messages.po" "$ENGLISH_MESSAGES_DIR/messages.po.fixing"
+    
+    # Fix line 7977: add missing closing quote
+    sed -i.bak '7977s/^"This system is provided "$/&"/' "$ENGLISH_MESSAGES_DIR/messages.po.fixing"
+    
+    # Fix line 9454: add missing closing quote  
+    sed -i.bak '9454s/^"use "$/&"/' "$ENGLISH_MESSAGES_DIR/messages.po.fixing"
+    
+    # Remove backup files created by sed
+    rm -f "$ENGLISH_MESSAGES_DIR/messages.po.fixing.bak"
+    
+    # Test if fix worked
+    if msgfmt --check "$ENGLISH_MESSAGES_DIR/messages.po.fixing" -o /dev/null 2>/dev/null; then
+        mv "$ENGLISH_MESSAGES_DIR/messages.po.fixing" "$ENGLISH_MESSAGES_DIR/messages.po"
+        echo "  - Applied targeted syntax fixes"
+    else
+        echo "  - Targeted fixes failed, keeping original file"
+        rm -f "$ENGLISH_MESSAGES_DIR/messages.po.fixing"
+    fi
+fi
+
+# Now merge with template to add any new strings
+msgmerge --no-fuzzy-matching --quiet "$ENGLISH_MESSAGES_DIR/messages.po" "$LOCALE_DIR/$TEMPLATE" -o "$ENGLISH_MESSAGES_DIR/messages.po.merged"
+
+# Process the merged file to ensure English translations are set properly while preserving existing ones
+# Use msgen to create English translations only for empty entries, preserving existing ones
+echo "  - Using msgen to create English translations for empty entries only..."
+
+# First copy the merged file
+cp "$ENGLISH_MESSAGES_DIR/messages.po.merged" "$ENGLISH_MESSAGES_DIR/messages.po.new"
+
+# Use msgen only on a copy to get the pattern, then selectively apply
+msgen "$ENGLISH_MESSAGES_DIR/messages.po.merged" -o "$ENGLISH_MESSAGES_DIR/messages.po.msgen"
+
+# Use msgcat to merge, preserving existing non-empty translations
+msgcat --use-first "$ENGLISH_MESSAGES_DIR/messages.po.merged" "$ENGLISH_MESSAGES_DIR/messages.po.msgen" -o "$ENGLISH_MESSAGES_DIR/messages.po.new"
+
+# Clean up temporary file
+rm -f "$ENGLISH_MESSAGES_DIR/messages.po.msgen"
+
+# Use the processed file
+if [ -f "$ENGLISH_MESSAGES_DIR/messages.po.new" ]; then
+    mv "$ENGLISH_MESSAGES_DIR/messages.po.new" "$ENGLISH_MESSAGES_DIR/messages.po"
+    rm -f "$ENGLISH_MESSAGES_DIR/messages.po.merged"
+else
+    echo "  - Warning: Failed to process English translations, keeping original"
+    mv "$ENGLISH_MESSAGES_DIR/messages.po.merged" "$ENGLISH_MESSAGES_DIR/messages.po"
+fi
 
 # Run msgfmt --check to ensure the file is valid
 if ! msgfmt --check "$ENGLISH_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
-    echo "  - Warning: English file has syntax issues, fixing with msgcat..."
-    msgcat --no-wrap "$ENGLISH_MESSAGES_DIR/messages.po" -o "$ENGLISH_MESSAGES_DIR/messages.po.fixed"
-    mv "$ENGLISH_MESSAGES_DIR/messages.po.fixed" "$ENGLISH_MESSAGES_DIR/messages.po"
+    echo "  - Warning: English file has syntax issues, attempting to fix..."
+    
+    # Try to fix with msgcat first
+    if msgcat --no-wrap "$ENGLISH_MESSAGES_DIR/messages.po" -o "$ENGLISH_MESSAGES_DIR/messages.po.fixed" 2>/dev/null; then
+        mv "$ENGLISH_MESSAGES_DIR/messages.po.fixed" "$ENGLISH_MESSAGES_DIR/messages.po"
+        echo "  - Fixed with msgcat"
+    else
+        echo "  - msgcat failed, trying manual fix for end-of-line issues..."
+        
+        # Manual fix for end-of-line within string errors
+        python3 -c "
+import re
+
+with open('$ENGLISH_MESSAGES_DIR/messages.po', 'r', encoding='utf-8', errors='replace') as f:
+    content = f.read()
+
+# Fix end-of-line within string issues
+# Look for strings that are missing closing quotes before newlines
+content = re.sub(r'\"([^\"]*)\n([^\"]*?)\"', r'\"\1\2\"', content, flags=re.MULTILINE)
+
+# Fix broken multiline strings
+lines = content.split('\n')
+fixed_lines = []
+in_msgid = False
+in_msgstr = False
+
+for i, line in enumerate(lines):
+    if line.startswith('msgid '):
+        in_msgid = True
+        in_msgstr = False
+        fixed_lines.append(line)
+    elif line.startswith('msgstr '):
+        in_msgid = False
+        in_msgstr = True
+        fixed_lines.append(line)
+    elif line.startswith('\"') and (in_msgid or in_msgstr):
+        # This is a continuation line
+        if not line.endswith('\"'):
+            # Missing closing quote
+            line += '\"'
+        fixed_lines.append(line)
+    else:
+        in_msgid = False
+        in_msgstr = False
+        fixed_lines.append(line)
+
+with open('$ENGLISH_MESSAGES_DIR/messages.po.fixed', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(fixed_lines))
+"
+        
+        if [ -f "$ENGLISH_MESSAGES_DIR/messages.po.fixed" ]; then
+            mv "$ENGLISH_MESSAGES_DIR/messages.po.fixed" "$ENGLISH_MESSAGES_DIR/messages.po"
+            echo "  - Applied manual fixes"
+            
+            # Test if the fix worked
+            if ! msgfmt --check "$ENGLISH_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
+                echo "  - Manual fix failed, creating fresh file from template..."
+                msginit --no-translator --locale=en_EN --input="$LOCALE_DIR/$TEMPLATE" --output="$ENGLISH_MESSAGES_DIR/messages.po"
+            fi
+        else
+            echo "  - Manual fix failed, creating fresh file from template..."
+            msginit --no-translator --locale=en_EN --input="$LOCALE_DIR/$TEMPLATE" --output="$ENGLISH_MESSAGES_DIR/messages.po"
+        fi
+    fi
 fi
 
 # Clean up obsolete translations
 cleanup_obsolete_translations "$ENGLISH_MESSAGES_DIR/messages.po"
 
-# Ensure all msgstr values match msgid values for the English locale
-echo "  - Setting all English translations to match their msgid values..."
-msgen "$ENGLISH_MESSAGES_DIR/messages.po" -o "$ENGLISH_MESSAGES_DIR/messages.po.en"
-mv "$ENGLISH_MESSAGES_DIR/messages.po.en" "$ENGLISH_MESSAGES_DIR/messages.po"
+# Skip the aggressive msgen step that overwrites all English translations
+echo "  - English translations preserved and new entries added"
 
 # Show statistics
 old_trans=$(grep -c "^msgstr" "$ENGLISH_MESSAGES_DIR/messages.po.bak" || echo 0)
@@ -222,8 +373,9 @@ for locale in $dirs; do
         # Create backup before merging
         cp "$LOCALE_MESSAGES_DIR/messages.po" "$LOCALE_MESSAGES_DIR/messages.po.bak"
         
-        # Merge with template
-        msgmerge --backup=none -N -U "$LOCALE_MESSAGES_DIR/messages.po" "$LOCALE_DIR/$TEMPLATE"
+        # Merge with template (preserve existing translations)
+        msgmerge --no-fuzzy-matching --quiet "$LOCALE_MESSAGES_DIR/messages.po" "$LOCALE_DIR/$TEMPLATE" -o "$LOCALE_MESSAGES_DIR/messages.po.tmp"
+        mv "$LOCALE_MESSAGES_DIR/messages.po.tmp" "$LOCALE_MESSAGES_DIR/messages.po"
         
         # Process to add English translations as fallback for empty msgstr and mark them for easy finding later
         TEMP_PO=$(mktemp)
@@ -292,18 +444,76 @@ print(f'  - Added {fallback_count} English fallbacks with auto-english-fallback 
             
             # Run msgfmt --check to ensure the file is valid
             if ! msgfmt --check "$LOCALE_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
-                echo "  - Warning: File has syntax issues, fixing with msgcat..."
-                msgcat --no-wrap "$LOCALE_MESSAGES_DIR/messages.po" -o "$LOCALE_MESSAGES_DIR/messages.po.fixed"
-                mv "$LOCALE_MESSAGES_DIR/messages.po.fixed" "$LOCALE_MESSAGES_DIR/messages.po"
+                echo "  - Warning: File has syntax issues, attempting to fix..."
                 
-                # If msgcat didn't fix it, try a more aggressive approach
-                if ! msgfmt --check "$LOCALE_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
-                    echo "  - Warning: Still has syntax issues, creating from scratch..."
-                    # Create a new PO file from the template and keep existing translations
-                    msginit --no-translator --locale="$locale" --input="$LOCALE_DIR/$TEMPLATE" --output="$LOCALE_MESSAGES_DIR/messages.po.new"
-                    # Merge with existing translations
-                    msgmerge --no-wrap "$LOCALE_MESSAGES_DIR/messages.po.new" "$LOCALE_MESSAGES_DIR/messages.po" -o "$LOCALE_MESSAGES_DIR/messages.po"
-                    rm -f "$LOCALE_MESSAGES_DIR/messages.po.new"
+                # First try to fix common header issues (missing plural forms)
+                python3 -c "
+import re
+
+with open('$LOCALE_MESSAGES_DIR/messages.po', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# Fix missing plural forms for different locales
+locale_plurals = {
+    'cs': 'nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;',
+    'de': 'nplurals=2; plural=(n != 1);',
+    'es': 'nplurals=2; plural=(n != 1);',
+    'fr': 'nplurals=2; plural=(n > 1);',
+    'it': 'nplurals=2; plural=(n != 1);',
+    'ja': 'nplurals=1; plural=0;',
+    'lt': 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);',
+    'nb': 'nplurals=2; plural=(n != 1);',
+    'nl': 'nplurals=2; plural=(n != 1);',
+    'pl': 'nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
+    'pt': 'nplurals=2; plural=(n != 1);',
+    'ru': 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
+    'tr': 'nplurals=2; plural=(n != 1);',
+    'zh': 'nplurals=1; plural=0;'
+}
+
+# Extract locale code from filename
+locale_code = '$locale'.split('_')[0].lower()
+plural_forms = locale_plurals.get(locale_code, 'nplurals=2; plural=(n != 1);')
+
+# Fix missing Plural-Forms header
+if 'Plural-Forms:' not in content:
+    content = re.sub(
+        r'(\"Content-Transfer-Encoding: 8bit\\\\n\")',
+        r'\1\n\"Plural-Forms: ' + plural_forms + '\\\\n\"',
+        content
+    )
+
+# Update Language field to correct locale code
+content = re.sub(r'\"Language: en_EN\\\\n\"', '\"Language: ' + locale_code + '\\\\n\"', content)
+
+with open('$LOCALE_MESSAGES_DIR/messages.po.headerfix', 'w', encoding='utf-8') as f:
+    f.write(content)
+"
+                
+                if [ -f "$LOCALE_MESSAGES_DIR/messages.po.headerfix" ]; then
+                    mv "$LOCALE_MESSAGES_DIR/messages.po.headerfix" "$LOCALE_MESSAGES_DIR/messages.po"
+                    echo "  - Applied header fixes"
+                    
+                    # Test if header fix worked
+                    if msgfmt --check "$LOCALE_MESSAGES_DIR/messages.po" -o /dev/null 2>/dev/null; then
+                        echo "  - Header fixes successful"
+                    else
+                        echo "  - Header fixes insufficient, trying msgcat..."
+                        if msgcat --no-wrap "$LOCALE_MESSAGES_DIR/messages.po" -o "$LOCALE_MESSAGES_DIR/messages.po.fixed" 2>/dev/null; then
+                            mv "$LOCALE_MESSAGES_DIR/messages.po.fixed" "$LOCALE_MESSAGES_DIR/messages.po"
+                            echo "  - msgcat fixes applied"
+                        else
+                            echo "  - Warning: Could not fix syntax issues, but preserving existing translations"
+                        fi
+                    fi
+                else
+                    echo "  - Header fix failed, trying msgcat..."
+                    if msgcat --no-wrap "$LOCALE_MESSAGES_DIR/messages.po" -o "$LOCALE_MESSAGES_DIR/messages.po.fixed" 2>/dev/null; then
+                        mv "$LOCALE_MESSAGES_DIR/messages.po.fixed" "$LOCALE_MESSAGES_DIR/messages.po"
+                        echo "  - msgcat fixes applied"
+                    else
+                        echo "  - Warning: Could not fix syntax issues, but preserving existing translations"
+                    fi
                 fi
             fi
         else
@@ -340,8 +550,10 @@ print(f'  - Added {fallback_count} English fallbacks with auto-english-fallback 
         # Clean up obsolete translations
         cleanup_obsolete_translations "$LOCALE_MESSAGES_DIR/messages.po"
         
-        # Remove backup
-        rm -f "$LOCALE_MESSAGES_DIR/messages.po.bak"
+        # Keep backup with timestamp for safety
+        TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+        mv "$LOCALE_MESSAGES_DIR/messages.po.bak" "$LOCALE_MESSAGES_DIR/messages.po.backup.$TIMESTAMP"
+        echo "  - Backup saved as messages.po.backup.$TIMESTAMP"
     fi
 done
 
@@ -353,7 +565,7 @@ echo ""
 echo "Translation files have been updated. To compile .mo files, run:"
 echo "./scripts/compile_messages.sh"
 echo ""
-echo "All obsolete translations have been removed for cleaner files."
+echo "Obsolete translations with actual content have been preserved for review."
 echo ""
 echo "Entries that were empty and filled with English translations are marked with '#, auto-english-fallback'."
 echo "You can find them using grep: grep -r \"auto-english-fallback\" locale/"
