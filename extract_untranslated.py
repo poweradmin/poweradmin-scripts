@@ -27,9 +27,10 @@ class PoEntry:
 
 
 class PoParser:
-    def __init__(self, file_path):
+    def __init__(self, file_path, exclusions=None):
         self.file_path = file_path
         self.entries = []
+        self.exclusions = exclusions or []
         
     def parse(self):
         with open(self.file_path, 'r', encoding='utf-8') as f:
@@ -143,36 +144,95 @@ class PoParser:
             s = s.replace('\\\\', '\\')
         return s
 
+    def is_excluded(self, msgid):
+        """Check if a message ID should be excluded from translation."""
+        if not self.exclusions:
+            return False
+            
+        # Direct match
+        if msgid in self.exclusions:
+            return True
+            
+        # Check if msgid is purely technical (only contains excluded terms)
+        words = re.findall(r'\b\w+\b', msgid)
+        if words and all(word.upper() in [e.upper() for e in self.exclusions] for word in words):
+            return True
+            
+        # Check if msgid is very short and looks technical
+        if len(msgid) <= 5 and msgid.isupper():
+            return True
+            
+        return False
+
+
+def load_exclusions():
+    """Load technical exclusions from JSON file."""
+    exclusions_file = Path(__file__).parent / "technical_exclusions.json"
+    
+    if not exclusions_file.exists():
+        print(f"Warning: Exclusions file {exclusions_file} not found. Continuing without exclusions.")
+        return []
+    
+    try:
+        with open(exclusions_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return data.get('exclusions', [])
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"Warning: Could not load exclusions file: {e}")
+        return []
+
 
 def main():
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: python extract_untranslated.py <locale> [limit]")
+    if len(sys.argv) < 2 or len(sys.argv) > 4:
+        print("Usage: python extract_untranslated.py <locale> [limit] [--include-excluded]")
         print("Example: python extract_untranslated.py fr_FR")
         print("Example: python extract_untranslated.py fr_FR 50")
-        print("Example: python extract_untranslated.py fr_FR 200")
+        print("Example: python extract_untranslated.py fr_FR 200 --include-excluded")
         sys.exit(1)
     
     locale = sys.argv[1]
-    limit = int(sys.argv[2]) if len(sys.argv) == 3 else None
+    limit = None
+    include_excluded = False
+    
+    # Parse additional arguments
+    for arg in sys.argv[2:]:
+        if arg == "--include-excluded":
+            include_excluded = True
+        elif arg.isdigit():
+            limit = int(arg)
+    
     po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
     
     if not po_file.exists():
         print(f"Error: File {po_file} does not exist")
         sys.exit(1)
     
+    # Load exclusions unless explicitly disabled
+    exclusions = [] if include_excluded else load_exclusions()
+    
     print(f"Parsing {po_file}...")
-    parser = PoParser(po_file)
+    if exclusions and not include_excluded:
+        print(f"Loaded {len(exclusions)} technical exclusions")
+    
+    parser = PoParser(po_file, exclusions)
     entries = parser.parse()
     
     # Separate untranslated and fuzzy entries
     untranslated = []
     fuzzy = []
+    excluded_count = 0
     
     for entry in entries:
         if entry.is_fuzzy:
-            fuzzy.append(entry)
+            if not parser.is_excluded(entry.msgid):
+                fuzzy.append(entry)
+            else:
+                excluded_count += 1
         elif entry.is_untranslated:
-            untranslated.append(entry)
+            if not parser.is_excluded(entry.msgid):
+                untranslated.append(entry)
+            else:
+                excluded_count += 1
     
     # Apply limit if specified
     if limit:
@@ -180,11 +240,13 @@ def main():
         fuzzy = fuzzy[:limit]
     
     # Prepare output data
+    total_untranslated = len([e for e in entries if e.is_untranslated and not parser.is_excluded(e.msgid)])
     output_data = {
         'locale': locale,
         'untranslated_count': len(untranslated),
         'fuzzy_count': len(fuzzy),
-        'total_untranslated': len([e for e in entries if e.is_untranslated]),
+        'total_untranslated': total_untranslated,
+        'excluded_count': excluded_count,
         'entries': []
     }
     
@@ -237,6 +299,8 @@ def main():
     else:
         print(f"- Untranslated entries: {len(untranslated)}")
     print(f"- Fuzzy entries: {len(fuzzy)}")
+    if excluded_count > 0:
+        print(f"- Excluded technical terms: {excluded_count}")
     print(f"- Output saved to: {output_file}")
     
     # Show a few examples
