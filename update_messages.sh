@@ -35,12 +35,12 @@ done
 
 # Execute scripts
 echo "Extracting strings..."
-"$EXTRACT_SCRIPT"
+cd "$PROJECT_ROOT" && ./scripts/extract_strings.sh
 
 echo "Merging messages..."
-"$MERGE_SCRIPT"
+cd "$PROJECT_ROOT" && ./scripts/merge_messages.sh
 
 echo "Compiling messages..."
-"$COMPILE_SCRIPT"
+cd "$PROJECT_ROOT" && ./scripts/compile_messages.sh
 
 echo "Update completed successfully."
