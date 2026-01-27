@@ -22,12 +22,55 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT" || { echo "Error: Failed to change to project root directory: $PROJECT_ROOT"; exit 1; }
 
+OUTPUT_FILE="data/tlds.php"
 temp_file=$(mktemp)
 trap 'rm -f "$temp_file"' EXIT
 
+echo "Downloading TLD list from IANA..."
 curl -sSL http://data.iana.org/TLD/tlds-alpha-by-domain.txt > "$temp_file"
 
-echo 'const TOP_LEVEL_DOMAINS = array('
-tail -n +2 "$temp_file" | tr '[:upper:]' '[:lower:]' | awk '{printf "\"%s\", ", $0}' | fold -s -w 79 | sed -e 's/^/  /g'
-echo ""
-echo ');'
+# Count TLDs (excluding header line)
+tld_count=$(tail -n +2 "$temp_file" | wc -l | tr -d ' ')
+current_date=$(date +%Y-%m-%d)
+
+echo "Generating $OUTPUT_FILE with $tld_count TLDs..."
+
+# Generate PHP file header
+cat > "$OUTPUT_FILE" << HEADER
+<?php
+
+/**
+ * Top Level Domains list from IANA
+ *
+ * Updated on $current_date - $tld_count TLDs
+ * Source: http://data.iana.org/TLD/tlds-alpha-by-domain.txt
+ *
+ * Do not edit manually - use scripts/update_tlds.sh to regenerate
+ */
+
+return [
+    'tlds' => [
+HEADER
+
+# Convert TLDs to PHP array format (lowercase, quoted, wrapped at ~75 chars)
+tail -n +2 "$temp_file" | tr '[:upper:]' '[:lower:]' | \
+    awk '{printf "'\''%s'\'', ", $0}' | \
+    fold -s -w 75 | \
+    sed -e 's/^/        /g' >> "$OUTPUT_FILE"
+
+# Add closing bracket and special TLDs
+cat >> "$OUTPUT_FILE" << 'FOOTER'
+
+    ],
+    // RFC 2606 special TLDs for testing and documentation
+    // http://tools.ietf.org/html/rfc2606#section-2
+    'special' => [
+        'test',
+        'example',
+        'invalid',
+        'localhost',
+    ],
+];
+FOOTER
+
+echo "Successfully updated $OUTPUT_FILE"
