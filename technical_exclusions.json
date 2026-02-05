@@ -1,6 +1,10 @@
 {
   "description": "Technical terms that should not be translated in PowerAdmin",
   "exclusions": [
+    "-",
+    "SOA: <code>[NS1] [HOSTMASTER] [SERIAL] 28800 7200 604800 86400</code>",
+    "MX for Microsoft 365: <code>[DOMAIN]-[TLD].mail.protection.outlook.com</code>",
+    "TXT for SPF: <code>v=spf1 mx ip4:192.0.2.0/24 -all</code>",
     "DNSSEC",
     "TTL",
     "ID",
