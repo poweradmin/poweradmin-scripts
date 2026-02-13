@@ -206,8 +206,9 @@ process_file() {
 
 # Process templates if directory exists
 if [ -d "$TEMPLATES_DIR" ]; then
-    # Clear the POT file first
-    cat > "${HTML_POT}" << EOF
+    # Create a temp file for processing with proper PO header (required by msguniq)
+    TEMP_HTML_POT="${TEMP_DIR}/temp_html.pot"
+    cat > "${TEMP_HTML_POT}" << TMPEOF
 msgid ""
 msgstr ""
 "Project-Id-Version: Poweradmin ${VERSION}\n"
@@ -220,19 +221,16 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-EOF
 
-    # Create a temp file for processing
-    TEMP_HTML_POT="${TEMP_DIR}/temp_html.pot"
-    > "${TEMP_HTML_POT}"  # Clear the temp file
-    
+TMPEOF
+
     find "$TEMPLATES_DIR" \( -name "*.html" -o -name "*.html.twig" \) | while read -r file; do
         process_file "$file" "${TEMP_HTML_POT}"
     done
-    
-    # Use msguniq to deduplicate
+
+    # Use msguniq to deduplicate and write to final HTML POT
     if [ -s "${TEMP_HTML_POT}" ]; then
-        msguniq "${TEMP_HTML_POT}" --force-po >> "${HTML_POT}" || true
+        msguniq "${TEMP_HTML_POT}" --force-po -o "${HTML_POT}" || cp "${TEMP_HTML_POT}" "${HTML_POT}"
     fi
 else
     echo "Warning: Templates directory ${TEMPLATES_DIR} not found, skipping"
@@ -241,8 +239,9 @@ fi
 
 # Process install templates if directory exists
 if [ -d "$INSTALL_DIR" ]; then
-    # Clear the POT file first
-    cat > "${INSTALL_POT}" << EOF
+    # Create a temp file for processing with proper PO header (required by msguniq)
+    TEMP_INSTALL_POT="${TEMP_DIR}/temp_install.pot"
+    cat > "${TEMP_INSTALL_POT}" << TMPEOF
 msgid ""
 msgstr ""
 "Project-Id-Version: Poweradmin ${VERSION}\n"
@@ -255,19 +254,16 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-EOF
 
-    # Create a temp file for processing
-    TEMP_INSTALL_POT="${TEMP_DIR}/temp_install.pot"
-    > "${TEMP_INSTALL_POT}"  # Clear the temp file
-    
+TMPEOF
+
     find "$INSTALL_DIR" \( -name "*.html" -o -name "*.html.twig" \) | while read -r file; do
         process_file "$file" "${TEMP_INSTALL_POT}"
     done
-    
-    # Use msguniq to deduplicate
+
+    # Use msguniq to deduplicate and write to final install POT
     if [ -s "${TEMP_INSTALL_POT}" ]; then
-        msguniq "${TEMP_INSTALL_POT}" --force-po >> "${INSTALL_POT}" || true
+        msguniq "${TEMP_INSTALL_POT}" --force-po -o "${INSTALL_POT}" || cp "${TEMP_INSTALL_POT}" "${INSTALL_POT}"
     fi
 else
     echo "Warning: Install directory ${INSTALL_DIR} not found, skipping"
