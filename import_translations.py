@@ -2,8 +2,9 @@
 """
 Import translations back into a .po file from a JSON file.
 
-Usage: python import_translations.py <json_file>
+Usage: python import_translations.py <json_file> [--module=ModuleName]
 Example: python import_translations.py fr_FR_untranslated.json
+Example: python import_translations.py ZoneImportExport_fr_FR_untranslated.json --module=ZoneImportExport
 """
 
 import sys
@@ -213,40 +214,50 @@ class PoUpdater:
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python import_translations.py <json_file>")
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
+        print("Usage: python import_translations.py <json_file> [--module=ModuleName]")
         print("Example: python import_translations.py fr_FR_untranslated.json")
+        print("Example: python import_translations.py ZoneImportExport_fr_FR_untranslated.json --module=ZoneImportExport")
         sys.exit(1)
-    
+
     json_file = sys.argv[1]
-    
+    module_name = None
+
+    for arg in sys.argv[2:]:
+        if arg.startswith("--module="):
+            module_name = arg.split("=", 1)[1]
+
     if not os.path.exists(json_file):
         print(f"Error: File {json_file} does not exist")
         sys.exit(1)
-    
+
     # Load translations
     print(f"Loading translations from {json_file}...")
     with open(json_file, 'r', encoding='utf-8') as f:
         translations_data = json.load(f)
-    
+
     locale = translations_data.get('locale')
     if not locale:
         print("Error: No locale found in JSON file")
         sys.exit(1)
-    
+
     # Find the .po file
-    po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
-    
+    if module_name:
+        po_file = Path(f"lib/Module/{module_name}/locale/{locale}/messages.po")
+    else:
+        po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
+
     if not po_file.exists():
         print(f"Error: File {po_file} does not exist")
         sys.exit(1)
-    
+
     # Update the .po file
     updater = PoUpdater(po_file, translations_data)
     updater.update()
-    
-    print(f"\nDon't forget to compile the .po file to .mo:")
-    print(f"  msgfmt locale/{locale}/LC_MESSAGES/messages.po -o locale/{locale}/LC_MESSAGES/messages.mo")
+
+    if not module_name:
+        print(f"\nDon't forget to compile the .po file to .mo:")
+        print(f"  msgfmt locale/{locale}/LC_MESSAGES/messages.po -o locale/{locale}/LC_MESSAGES/messages.mo")
 
 
 if __name__ == "__main__":

@@ -2,8 +2,9 @@
 """
 Extract untranslated messages from a .po file for translation.
 
-Usage: python extract_untranslated.py <locale>
+Usage: python extract_untranslated.py <locale> [limit] [--include-excluded] [--module=ModuleName]
 Example: python extract_untranslated.py fr_FR
+Example: python extract_untranslated.py fr_FR --module=ZoneImportExport
 """
 
 import sys
@@ -183,25 +184,32 @@ def load_exclusions():
 
 
 def main():
-    if len(sys.argv) < 2 or len(sys.argv) > 4:
-        print("Usage: python extract_untranslated.py <locale> [limit] [--include-excluded]")
+    if len(sys.argv) < 2 or len(sys.argv) > 5:
+        print("Usage: python extract_untranslated.py <locale> [limit] [--include-excluded] [--module=ModuleName]")
         print("Example: python extract_untranslated.py fr_FR")
         print("Example: python extract_untranslated.py fr_FR 50")
         print("Example: python extract_untranslated.py fr_FR 200 --include-excluded")
+        print("Example: python extract_untranslated.py fr_FR --module=ZoneImportExport")
         sys.exit(1)
-    
+
     locale = sys.argv[1]
     limit = None
     include_excluded = False
-    
+    module_name = None
+
     # Parse additional arguments
     for arg in sys.argv[2:]:
         if arg == "--include-excluded":
             include_excluded = True
+        elif arg.startswith("--module="):
+            module_name = arg.split("=", 1)[1]
         elif arg.isdigit():
             limit = int(arg)
-    
-    po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
+
+    if module_name:
+        po_file = Path(f"lib/Module/{module_name}/locale/{locale}/messages.po")
+    else:
+        po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
     
     if not po_file.exists():
         print(f"Error: File {po_file} does not exist")
@@ -289,7 +297,7 @@ def main():
             output_data['fuzzy_entries'].append(entry_data)
     
     # Write output file
-    output_file = f"{locale}_untranslated.json"
+    output_file = f"{module_name}_{locale}_untranslated.json" if module_name else f"{locale}_untranslated.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2, ensure_ascii=False)
     
