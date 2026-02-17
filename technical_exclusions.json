@@ -163,6 +163,19 @@
     "OSPF",
     "RIP",
     "EIGRP",
-    "IS-IS"
+    "IS-IS",
+    "OIDC",
+    "Stream Control Transmission Protocol",
+    "Transport Layer Security",
+    "PDNS Server",
+    "PowerDNS Server",
+    "Hostmaster",
+    "Supermaster",
+    "Supermasters",
+    "1 - SHA-256 Hash",
+    "2 - SHA-512 Hash",
+    "Bits",
+    "Bytes",
+    "Uptime"
   ]
 }
