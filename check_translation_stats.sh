@@ -2,9 +2,32 @@
 
 # Script: check_translation_stats.sh
 # Description: Display translation statistics for all locales using msgfmt
-# Usage: ./scripts/check_translation_stats.sh
+# Usage: ./scripts/check_translation_stats.sh [--module=ModuleName]
+# Example: ./scripts/check_translation_stats.sh --module=ZoneImportExport
 
-echo "=== Translation Statistics for All Locales ==="
+# Parse arguments
+MODULE_NAME=""
+VERBOSE=false
+for arg in "$@"; do
+    case "$arg" in
+        --module=*)
+            MODULE_NAME="${arg#*=}"
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            ;;
+    esac
+done
+
+if [ -n "$MODULE_NAME" ]; then
+    LOCALE_PATTERN="lib/Module/$MODULE_NAME/locale/*"
+    PO_SUFFIX="messages.po"
+    echo "=== Translation Statistics for Module: $MODULE_NAME ==="
+else
+    LOCALE_PATTERN="locale/*/LC_MESSAGES"
+    PO_SUFFIX="messages.po"
+    echo "=== Translation Statistics for All Locales ==="
+fi
 echo "Generated on: $(date)"
 echo ""
 
@@ -23,12 +46,19 @@ echo "Locale | Translated | Fuzzy | Untranslated | Total | Percentage"
 echo "-------|------------|-------|--------------|-------|------------"
 
 # Process each locale
-for locale_dir in locale/*/LC_MESSAGES; do
-    if [[ -f "$locale_dir/messages.po" ]]; then
+for locale_dir in $LOCALE_PATTERN; do
+    if [ -n "$MODULE_NAME" ]; then
+        po_file="$locale_dir/$PO_SUFFIX"
+        locale_name=$(basename "$locale_dir")
+    else
+        po_file="$locale_dir/$PO_SUFFIX"
         locale_name=$(basename $(dirname "$locale_dir"))
+    fi
+    if [[ -f "$po_file" ]]; then
+        true  # locale_name already set above
         
         # Get statistics from msgfmt
-        stats=$(msgfmt --statistics "$locale_dir/messages.po" 2>&1)
+        stats=$(msgfmt --statistics "$po_file" 2>&1)
         
         # Parse the statistics
         translated=$(echo "$stats" | grep -o '[0-9]\+ translated' | grep -o '[0-9]\+' || echo "0")
@@ -71,17 +101,26 @@ echo "Fully translated (≥95%): $fully_translated"
 echo ""
 
 # Optional: Show detailed msgfmt output
-if [[ "$1" == "--verbose" || "$1" == "-v" ]]; then
+if [ "$VERBOSE" = true ]; then
     echo "=== Detailed msgfmt Output ==="
-    for locale_dir in locale/*/LC_MESSAGES; do
-        if [[ -f "$locale_dir/messages.po" ]]; then
+    for locale_dir in $LOCALE_PATTERN; do
+        if [ -n "$MODULE_NAME" ]; then
+            po_file="$locale_dir/$PO_SUFFIX"
+            locale_name=$(basename "$locale_dir")
+        else
+            po_file="$locale_dir/$PO_SUFFIX"
             locale_name=$(basename $(dirname "$locale_dir"))
+        fi
+        if [[ -f "$po_file" ]]; then
             echo ""
             echo "[$locale_name]"
-            msgfmt --statistics "$locale_dir/messages.po" 2>&1
+            msgfmt --statistics "$po_file" 2>&1
         fi
     done
 fi
 
 echo ""
 echo "Tip: Use '$0 --verbose' to see detailed msgfmt output for each locale"
+if [ -z "$MODULE_NAME" ]; then
+    echo "Tip: Use '$0 --module=ModuleName' to check module translations"
+fi

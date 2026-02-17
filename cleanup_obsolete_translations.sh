@@ -16,6 +16,7 @@
 #   --no-backup       Don't create backups
 #   --stats-only      Only show statistics about obsolete translations
 #   --force-check     Run msgmerge first to mark obsolete entries, then clean them
+#   --module=NAME     Process module locale files (e.g., --module=ZoneImportExport)
 #   --help, -h        Show help message
 #
 # Examples:
@@ -31,6 +32,7 @@ CREATE_BACKUP=true
 STATS_ONLY=false
 SPECIFIC_LOCALE=""
 FORCE_CHECK=false
+MODULE_NAME=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOCALE_DIR="$PROJECT_ROOT/locale"
@@ -141,7 +143,7 @@ validate_environment() {
         return 1
     fi
     
-    if [ ! -f "$TEMPLATE_FILE" ]; then
+    if [ -z "$MODULE_NAME" ] && [ ! -f "$TEMPLATE_FILE" ]; then
         error "Template file not found: $TEMPLATE_FILE"
         error "Please run ./scripts/extract_strings.sh first to generate the template."
         return 1
@@ -164,23 +166,33 @@ get_locales() {
             error "Locale directory not found: $locale_dir"
             return 1
         fi
-        
-        local po_file="$locale_dir/LC_MESSAGES/messages.po"
+
+        local po_file
+        if [ -n "$MODULE_NAME" ]; then
+            po_file="$locale_dir/messages.po"
+        else
+            po_file="$locale_dir/LC_MESSAGES/messages.po"
+        fi
         if [ ! -f "$po_file" ]; then
             error "PO file not found: $po_file"
             return 1
         fi
-        
+
         echo "$SPECIFIC_LOCALE"
         return 0
     fi
-    
+
     # Find all available locales
     for dir in "$LOCALE_DIR"/*; do
         if [ -d "$dir" ] && [ "$(basename "$dir")" != "." ] && [ "$(basename "$dir")" != ".." ]; then
             local locale=$(basename "$dir")
-            local po_file="$dir/LC_MESSAGES/messages.po"
-            
+            local po_file
+            if [ -n "$MODULE_NAME" ]; then
+                po_file="$dir/messages.po"
+            else
+                po_file="$dir/LC_MESSAGES/messages.po"
+            fi
+
             if [ -f "$po_file" ]; then
                 locales+=("$locale")
             fi
@@ -249,7 +261,12 @@ find_obsolete_translations() {
 # Function to show statistics for a locale
 show_locale_stats() {
     local locale=$1
-    local po_file="$LOCALE_DIR/$locale/LC_MESSAGES/messages.po"
+    local po_file
+    if [ -n "$MODULE_NAME" ]; then
+        po_file="$LOCALE_DIR/$locale/messages.po"
+    else
+        po_file="$LOCALE_DIR/$locale/LC_MESSAGES/messages.po"
+    fi
     local template_msgids_file=$2
     
     local obsolete_file=$(find_obsolete_translations "$po_file" "$template_msgids_file")
@@ -423,7 +440,12 @@ force_mark_obsolete() {
 process_locale() {
     local locale=$1
     local template_msgids_file=$2
-    local po_file="$LOCALE_DIR/$locale/LC_MESSAGES/messages.po"
+    local po_file
+    if [ -n "$MODULE_NAME" ]; then
+        po_file="$LOCALE_DIR/$locale/messages.po"
+    else
+        po_file="$LOCALE_DIR/$locale/LC_MESSAGES/messages.po"
+    fi
     
     info "\nProcessing locale: $locale"
     
@@ -511,6 +533,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --locale=*)
             SPECIFIC_LOCALE="${1#*=}"
+            shift
+            ;;
+        --module=*)
+            MODULE_NAME="${1#*=}"
+            LOCALE_DIR="$PROJECT_ROOT/lib/Module/$MODULE_NAME/locale"
             shift
             ;;
         --help|-h)
