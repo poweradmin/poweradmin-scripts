@@ -33,6 +33,7 @@ fi
 CODE_DIR="lib"
 
 TEMPLATES_DIR="templates"
+MODULE_TEMPLATES_DIR="lib/Module"
 INSTALL_DIR="install/templates"
 HELPERS_DIR="install/helpers"
 OUTPUT_POT="locale/i18n-template-php.pot"
@@ -227,6 +228,13 @@ TMPEOF
     find "$TEMPLATES_DIR" \( -name "*.html" -o -name "*.html.twig" \) | while read -r file; do
         process_file "$file" "${TEMP_HTML_POT}"
     done
+
+    # Also scan module template directories
+    if [ -d "$MODULE_TEMPLATES_DIR" ]; then
+        find "$MODULE_TEMPLATES_DIR" -path "*/templates/*.html" | while read -r file; do
+            process_file "$file" "${TEMP_HTML_POT}"
+        done
+    fi
 
     # Use msguniq to deduplicate and write to final HTML POT
     if [ -s "${TEMP_HTML_POT}" ]; then
