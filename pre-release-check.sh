@@ -161,7 +161,7 @@ if command -v msgfmt &> /dev/null; then
         # Skip en_EN - it's intentionally untranslated
         [[ "$locale_name" == "en_EN" ]] && continue
 
-        stats=$(msgfmt --statistics "$po_file" 2>&1)
+        stats=$(msgfmt --statistics -o /dev/null "$po_file" 2>&1)
         fuzzy=$(echo "$stats" | grep -o '[0-9]\+ fuzzy' | grep -o '[0-9]\+' || echo "0")
         untranslated=$(echo "$stats" | grep -o '[0-9]\+ untranslated' | grep -o '[0-9]\+' || echo "0")
         locale_count=$((locale_count + 1))
@@ -186,7 +186,7 @@ if command -v msgfmt &> /dev/null; then
                 locale_name=$(basename "$(dirname "$po_file")")
                 [[ "$locale_name" == "en_EN" ]] && continue
 
-                stats=$(msgfmt --statistics "$po_file" 2>&1)
+                stats=$(msgfmt --statistics -o /dev/null "$po_file" 2>&1)
                 fuzzy=$(echo "$stats" | grep -o '[0-9]\+ fuzzy' | grep -o '[0-9]\+' || echo "0")
                 untranslated=$(echo "$stats" | grep -o '[0-9]\+ untranslated' | grep -o '[0-9]\+' || echo "0")
 

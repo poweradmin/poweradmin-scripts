@@ -58,7 +58,7 @@ for locale_dir in $LOCALE_PATTERN; do
         true  # locale_name already set above
         
         # Get statistics from msgfmt
-        stats=$(msgfmt --statistics "$po_file" 2>&1)
+        stats=$(msgfmt --statistics -o /dev/null "$po_file" 2>&1)
         
         # Parse the statistics
         translated=$(echo "$stats" | grep -o '[0-9]\+ translated' | grep -o '[0-9]\+' || echo "0")
@@ -114,7 +114,7 @@ if [ "$VERBOSE" = true ]; then
         if [[ -f "$po_file" ]]; then
             echo ""
             echo "[$locale_name]"
-            msgfmt --statistics "$po_file" 2>&1
+            msgfmt --statistics -o /dev/null "$po_file" 2>&1
         fi
     done
 fi
