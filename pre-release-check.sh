@@ -261,8 +261,23 @@ check_file_age() {
 # Public suffix list (all branches)
 check_file_age "data/public_suffix_list.dat" "Public suffix list" "./scripts/update_public_suffix.sh"
 
-# TLD list (4.1.x+)
-check_file_age "data/tlds.php" "TLD list" "./scripts/update_tlds.sh"
+# TLD list - different locations depending on branch
+if [[ -f data/tlds.php ]]; then
+    check_file_age "data/tlds.php" "TLD list" "./scripts/update_tlds.sh"
+elif [[ -f lib/Domain/Model/TopLevelDomain.php ]]; then
+    tld_date=$(grep -o "Updated on [0-9-]*" lib/Domain/Model/TopLevelDomain.php | grep -o "[0-9-]*" || true)
+    if [[ -n "$tld_date" ]]; then
+        days_old=$(( ($(date +%s) - $(date -j -f "%Y-%m-%d" "$tld_date" +%s 2>/dev/null || date -d "$tld_date" +%s 2>/dev/null)) / 86400 ))
+        if [[ $days_old -lt 30 ]]; then
+            pass "TLD list is recent ($tld_date, in TopLevelDomain.php)"
+        else
+            warn "TLD list is $days_old days old ($tld_date, in TopLevelDomain.php)"
+            info "Update with: ./scripts/update_tlds.sh"
+        fi
+    else
+        warn "Could not determine TLD list age from TopLevelDomain.php"
+    fi
+fi
 
 # RDAP servers
 if [[ -f lib/Module/Rdap/data/rdap_servers.php ]]; then
