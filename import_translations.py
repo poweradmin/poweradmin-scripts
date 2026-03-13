@@ -3,8 +3,15 @@
 Import translations back into a .po file from a JSON file.
 
 Usage: python import_translations.py <json_file> [--module=ModuleName]
-Example: python import_translations.py fr_FR_untranslated.json
-Example: python import_translations.py ZoneImportExport_fr_FR_untranslated.json --module=ZoneImportExport
+       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName]
+
+The first form imports from an extracted untranslated JSON file (from extract_untranslated.py).
+The second form imports from a simple {msgid: translation} JSON dict directly into the .po file.
+
+Examples:
+  python import_translations.py fr_FR_untranslated.json
+  python import_translations.py fr_FR --dict=translations.json
+  python import_translations.py fr_FR --dict=translations.json --module=ZoneImportExport
 """
 
 import sys
@@ -213,43 +220,154 @@ class PoUpdater:
             return result
 
 
+def build_translations_data_from_dict(locale, dict_file, po_file):
+    """Build translations_data from a simple {msgid: translation} JSON dict.
+
+    Reads the .po file to find untranslated and fuzzy entries, then matches
+    them against the provided dict to produce the same format that
+    extract_untranslated.py generates.
+    """
+    with open(dict_file, 'r', encoding='utf-8') as f:
+        trans_dict = json.load(f)
+
+    with open(po_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    translations_data = {
+        'locale': locale,
+        'entries': [],
+        'fuzzy_entries': [],
+    }
+
+    blocks = re.split(r'(\n\s*\n)', content)
+    for block in blocks:
+        if not block.strip():
+            continue
+
+        # Check if fuzzy
+        is_fuzzy = bool(re.search(r'^#,.*fuzzy', block, re.MULTILINE))
+
+        # Extract msgid
+        msgid_match = re.search(r'^msgid "(.*)"', block, re.MULTILINE)
+        if not msgid_match:
+            continue
+        msgid_lines = [msgid_match.group(1)]
+        # Collect continuation lines after msgid
+        pos = block.index(msgid_match.group(0)) + len(msgid_match.group(0))
+        rest = block[pos:]
+        for line in rest.split('\n'):
+            line = line.strip()
+            if line.startswith('"') and line.endswith('"'):
+                msgid_lines.append(line[1:-1])
+            elif line.startswith('msgstr') or line.startswith('msgid_plural'):
+                break
+            elif line and not line.startswith('#'):
+                break
+
+        msgid = ''.join(msgid_lines)
+        msgid = msgid.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+
+        if not msgid:
+            continue
+
+        # Extract msgstr
+        msgstr_match = re.search(r'^msgstr "(.*)"', block, re.MULTILINE)
+        if not msgstr_match:
+            continue
+        msgstr_lines = [msgstr_match.group(1)]
+        pos = block.index(msgstr_match.group(0)) + len(msgstr_match.group(0))
+        rest = block[pos:]
+        for line in rest.split('\n'):
+            line = line.strip()
+            if line.startswith('"') and line.endswith('"'):
+                msgstr_lines.append(line[1:-1])
+            else:
+                break
+        msgstr = ''.join(msgstr_lines)
+
+        is_untranslated = not msgstr
+
+        if (is_untranslated or is_fuzzy) and msgid in trans_dict:
+            entry = {
+                'msgid': msgid,
+                'translation': trans_dict[msgid],
+            }
+            if is_fuzzy:
+                entry['current_translation'] = msgstr
+                translations_data['fuzzy_entries'].append(entry)
+            else:
+                translations_data['entries'].append(entry)
+
+    filled = len(translations_data['entries']) + len(translations_data['fuzzy_entries'])
+    unmatched = len(trans_dict) - filled
+    print(f"Matched {filled} entries from dict ({unmatched} dict entries not needed)")
+
+    return translations_data
+
+
 def main():
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
+    if len(sys.argv) < 2:
         print("Usage: python import_translations.py <json_file> [--module=ModuleName]")
-        print("Example: python import_translations.py fr_FR_untranslated.json")
-        print("Example: python import_translations.py ZoneImportExport_fr_FR_untranslated.json --module=ZoneImportExport")
+        print("       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName]")
+        print()
+        print("Examples:")
+        print("  python import_translations.py fr_FR_untranslated.json")
+        print("  python import_translations.py fr_FR --dict=translations.json")
         sys.exit(1)
 
-    json_file = sys.argv[1]
     module_name = None
+    dict_file = None
 
     for arg in sys.argv[2:]:
         if arg.startswith("--module="):
             module_name = arg.split("=", 1)[1]
+        elif arg.startswith("--dict="):
+            dict_file = arg.split("=", 1)[1]
 
-    if not os.path.exists(json_file):
-        print(f"Error: File {json_file} does not exist")
-        sys.exit(1)
+    if dict_file:
+        # Dict mode: first arg is locale
+        locale = sys.argv[1]
 
-    # Load translations
-    print(f"Loading translations from {json_file}...")
-    with open(json_file, 'r', encoding='utf-8') as f:
-        translations_data = json.load(f)
+        if not os.path.exists(dict_file):
+            print(f"Error: File {dict_file} does not exist")
+            sys.exit(1)
 
-    locale = translations_data.get('locale')
-    if not locale:
-        print("Error: No locale found in JSON file")
-        sys.exit(1)
+        if module_name:
+            po_file = Path(f"lib/Module/{module_name}/locale/{locale}/messages.po")
+        else:
+            po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
 
-    # Find the .po file
-    if module_name:
-        po_file = Path(f"lib/Module/{module_name}/locale/{locale}/messages.po")
+        if not po_file.exists():
+            print(f"Error: File {po_file} does not exist")
+            sys.exit(1)
+
+        print(f"Loading translations dict from {dict_file}...")
+        translations_data = build_translations_data_from_dict(locale, dict_file, po_file)
     else:
-        po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
+        # Original mode: first arg is extracted JSON file
+        json_file = sys.argv[1]
 
-    if not po_file.exists():
-        print(f"Error: File {po_file} does not exist")
-        sys.exit(1)
+        if not os.path.exists(json_file):
+            print(f"Error: File {json_file} does not exist")
+            sys.exit(1)
+
+        print(f"Loading translations from {json_file}...")
+        with open(json_file, 'r', encoding='utf-8') as f:
+            translations_data = json.load(f)
+
+        locale = translations_data.get('locale')
+        if not locale:
+            print("Error: No locale found in JSON file")
+            sys.exit(1)
+
+        if module_name:
+            po_file = Path(f"lib/Module/{module_name}/locale/{locale}/messages.po")
+        else:
+            po_file = Path(f"locale/{locale}/LC_MESSAGES/messages.po")
+
+        if not po_file.exists():
+            print(f"Error: File {po_file} does not exist")
+            sys.exit(1)
 
     # Update the .po file
     updater = PoUpdater(po_file, translations_data)
