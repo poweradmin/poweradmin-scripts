@@ -205,6 +205,42 @@ if command -v msgfmt &> /dev/null; then
         git checkout locale/i18n-template-php.pot 2>/dev/null || true
     fi
 
+    # Check .po files are in sync with .pot template (no missing entries)
+    if command -v msgmerge &> /dev/null && [[ -f locale/i18n-template-php.pot ]]; then
+        po_out_of_sync=false
+        for po_file in locale/*/LC_MESSAGES/messages.po; do
+            [[ -f "$po_file" ]] || continue
+            locale_name=$(basename "$(dirname "$(dirname "$po_file")")")
+            [[ "$locale_name" == "en_EN" ]] && continue
+
+            # Merge to temp file and compare msgid count
+            tmp_merged=$(mktemp)
+            msgmerge --quiet "$po_file" locale/i18n-template-php.pot -o "$tmp_merged" 2>/dev/null
+
+            orig_count=$(grep -c '^msgid ' "$po_file" || echo 0)
+            merged_count=$(grep -c '^msgid ' "$tmp_merged" || echo 0)
+            rm -f "$tmp_merged"
+
+            if [[ "$merged_count" -gt "$orig_count" ]]; then
+                new_entries=$((merged_count - orig_count))
+                fail "$locale_name: $new_entries strings missing from .pot template (run: msgmerge --update)"
+                po_out_of_sync=true
+            fi
+        done
+
+        if ! $po_out_of_sync; then
+            pass "All .po files in sync with .pot template"
+        elif $FIX_MODE; then
+            for po_file in locale/*/LC_MESSAGES/messages.po; do
+                [[ -f "$po_file" ]] || continue
+                locale_name=$(basename "$(dirname "$(dirname "$po_file")")")
+                [[ "$locale_name" == "en_EN" ]] && continue
+                msgmerge --update --quiet "$po_file" locale/i18n-template-php.pot 2>/dev/null
+            done
+            info "Fixed: all .po files merged with .pot template"
+        fi
+    fi
+
     # Check .mo files are compiled and up to date
     mo_outdated=false
     for po_file in locale/*/LC_MESSAGES/messages.po; do
