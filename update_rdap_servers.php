@@ -39,7 +39,7 @@
  */
 
 define('IANA_RDAP_BOOTSTRAP_URL', 'https://data.iana.org/rdap/dns.json');
-define('RDAP_SERVERS_FILE', __DIR__ . '/../data/rdap_servers.php');
+define('RDAP_SERVERS_FILE', __DIR__ . '/../lib/Module/Rdap/data/rdap_servers.php');
 
 // Parse command line options
 $options = getopt('', ['dry-run', 'verbose', 'help']);

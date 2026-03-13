@@ -38,7 +38,7 @@
 
 define('IANA_ROOT_DB_URL', 'https://www.iana.org/domains/root/db');
 define('IANA_WHOIS_SERVER', 'whois.iana.org');
-define('WHOIS_SERVERS_FILE', __DIR__ . '/../data/whois_servers.php');
+define('WHOIS_SERVERS_FILE', __DIR__ . '/../lib/Module/Whois/data/whois_servers.php');
 define('SOCKET_TIMEOUT', 5);
 define('REQUEST_DELAY_MS', 150); // Delay between IANA queries to avoid rate limiting
 
