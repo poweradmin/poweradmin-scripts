@@ -91,6 +91,17 @@ else
     fail "Uncommitted changes detected"
 fi
 
+# Install dev dependencies for code quality checks
+NEEDS_RESTORE=false
+if command -v composer &> /dev/null && [[ -f composer.json ]]; then
+    echo "  Installing dev dependencies..."
+    composer install --quiet 2>/dev/null
+    if [[ -d vendor/bin ]]; then
+        chmod +x vendor/bin/* 2>/dev/null || true
+    fi
+    NEEDS_RESTORE=true
+fi
+
 echo ""
 
 # -----------------------------------------------
@@ -406,6 +417,18 @@ if [[ -n "$version" ]]; then
     fi
 else
     warn "Could not determine version from lib/Version.php"
+fi
+
+echo ""
+
+# -----------------------------------------------
+# Restore production state
+# -----------------------------------------------
+if $NEEDS_RESTORE && command -v composer &> /dev/null; then
+    echo "Restoring production dependencies..."
+    composer install --no-dev --quiet 2>/dev/null
+    composer dump-autoload --optimize --quiet 2>/dev/null
+    git checkout -- vendor/composer/installed.php 2>/dev/null || true
 fi
 
 echo ""
