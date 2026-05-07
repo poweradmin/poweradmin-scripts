@@ -42,8 +42,11 @@ total_strings=0
 total_locales=0
 fully_translated=0
 
-echo "Locale | Translated | Fuzzy | Untranslated | Total | Percentage"
-echo "-------|------------|-------|--------------|-------|------------"
+echo "Locale | Translated | Fuzzy | Untranslated | Orphaned | Total | Percentage"
+echo "-------|------------|-------|--------------|----------|-------|------------"
+
+# Track total orphans across locales for the summary
+total_orphans=0
 
 # Process each locale
 for locale_dir in $LOCALE_PATTERN; do
@@ -59,11 +62,17 @@ for locale_dir in $LOCALE_PATTERN; do
         
         # Get statistics from msgfmt
         stats=$(msgfmt --statistics -o /dev/null "$po_file" 2>&1)
-        
+
         # Parse the statistics
         translated=$(echo "$stats" | grep -o '[0-9]\+ translated' | grep -o '[0-9]\+' || echo "0")
         fuzzy=$(echo "$stats" | grep -o '[0-9]\+ fuzzy' | grep -o '[0-9]\+' || echo "0")
         untranslated=$(echo "$stats" | grep -o '[0-9]\+ untranslated' | grep -o '[0-9]\+' || echo "0")
+
+        # Count orphan entries: gettext-style #~ msgid lines and project-style
+        # `# OBSOLETE: msgid` lines that survive merge_messages.sh.
+        # grep -c exits 1 on zero matches; pipe through wc -l for safe counting.
+        orphans=$(grep -E '^(#~ msgid|# OBSOLETE: msgid) ' "$po_file" 2>/dev/null | wc -l | tr -d ' ')
+        total_orphans=$((total_orphans + orphans))
         
         # Calculate total and percentage
         total=$((translated + fuzzy + untranslated))
@@ -88,8 +97,8 @@ for locale_dir in $LOCALE_PATTERN; do
         fi
         
         # Display results
-        printf "%-7s| %-10s | %-5s | %-12s | %-5s | %6s%% %s\n" \
-            "$locale_name" "$translated" "$fuzzy" "$untranslated" "$total" "$percentage" "$status"
+        printf "%-7s| %-10s | %-5s | %-12s | %-8s | %-5s | %6s%% %s\n" \
+            "$locale_name" "$translated" "$fuzzy" "$untranslated" "$orphans" "$total" "$percentage" "$status"
     fi
 done
 
@@ -98,6 +107,7 @@ echo "=== Summary ==="
 echo "Total locales: $total_locales"
 echo "Total strings: $total_strings"
 echo "Fully translated (≥95%): $fully_translated"
+echo "Orphaned entries (all locales): $total_orphans"
 echo ""
 
 # Optional: Show detailed msgfmt output
