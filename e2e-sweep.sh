@@ -255,7 +255,8 @@ strip_ansi() { sed $'s/\x1b\\[[0-9;]*[a-zA-Z]//g'; }
 
 extract_count() {
     # $1 = keyword (passed|failed|skipped|flaky), $2 = text
-    echo "$2" | grep -oE "[0-9]+ $1" | grep -oE '^[0-9]+' | tail -1
+    # Playwright omits zero-count lines; grep must not abort the set -e loop
+    echo "$2" | grep -oE "[0-9]+ $1" | grep -oE '^[0-9]+' | tail -1 || true
 }
 
 overall_fail=0
