@@ -164,13 +164,16 @@ def extract_translations(file_path):
     
     # Match all trans blocks with regex that supports special chars
     pattern = re.compile(r'{%\s*trans\s*%}(.*?){%\s*endtrans\s*%}', re.DOTALL)
-    
+    # Filter form: 'Some string'|trans or \"Some string\"|trans (macro arguments etc.)
+    filter_pattern = re.compile(r'''(?:'((?:[^'\\\\]|\\\\.)+)'|\"((?:[^\"\\\\]|\\\\.)+)\")\s*\|\s*trans\b''')
+
     # Find line numbers for each match
     lines = content.split('\\n')
     match_line_nums = {}
-    
+
     for i, line in enumerate(lines, 1):
         matches = pattern.findall(line)
+        matches += [m[0] or m[1] for m in filter_pattern.findall(line)]
         for match in matches:
             # Trim whitespace and skip empty translations
             trans_text = match.strip()
