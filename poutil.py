@@ -49,7 +49,8 @@ class Entry:
     """One .po block. Assigning msgstr or plurals marks it dirty for rewriting."""
 
     __slots__ = ('raw', 'sep', 'msgid', 'msgid_plural', 'locations', 'flags',
-                 'comments', 'obsolete', '_msgstr', '_plurals', '_dirty')
+                 'comments', 'obsolete', '_msgstr', '_plurals', '_dirty',
+                 '_flags_dirty')
 
     def __init__(self, raw, sep=''):
         self.raw = raw
@@ -63,6 +64,7 @@ class Entry:
         self._msgstr = ''
         self._plurals = {}
         self._dirty = False
+        self._flags_dirty = False
 
     @property
     def msgstr(self):
@@ -91,6 +93,29 @@ class Entry:
     def is_fuzzy(self):
         return 'fuzzy' in self.flags
 
+    def clear_fuzzy(self):
+        """Drop the fuzzy flag. Returns True when the entry actually had it."""
+        if 'fuzzy' not in self.flags:
+            return False
+        self.flags = [f for f in self.flags if f != 'fuzzy']
+        self._dirty = True
+        self._flags_dirty = True
+        return True
+
+    def _render_head(self, lines):
+        """Comment/msgid portion, with the flag line rewritten when flags changed."""
+        if not self._flags_dirty:
+            return lines
+        out = []
+        for line in lines:
+            if line.strip().startswith('#,'):
+                if self.flags:
+                    out.append('#, ' + ', '.join(self.flags))
+                # an empty flag list means the line is dropped entirely
+            else:
+                out.append(line)
+        return out
+
     @property
     def dirty(self):
         return self._dirty
@@ -109,7 +134,7 @@ class Entry:
         if cut is None:
             return self.raw
 
-        head = '\n'.join(lines[:cut])
+        head = '\n'.join(self._render_head(lines[:cut]))
         if self._plurals:
             body = '\n'.join(
                 f'msgstr[{n}] "{format_string(self._plurals[n])}"'
@@ -191,6 +216,33 @@ def parse_string(content):
 def parse(path):
     with open(path, 'r', encoding='utf-8') as fh:
         return parse_string(fh.read())
+
+
+def line_spans(entries):
+    """1-based (first_line, last_line) per entry, matching the on-disk layout.
+
+    Lets tools translate a line number reported by msgfmt back to the entry that
+    owns it, without a second parser.
+    """
+    spans = []
+    line = 1
+    for e in entries:
+        n = e.raw.count('\n')
+        spans.append((line, line + n))
+        line += n + e.sep.count('\n')
+    return spans
+
+
+def find_by_line(entries, lineno, spans=None):
+    """The entry containing lineno, or the nearest preceding one. None if before all."""
+    spans = spans or line_spans(entries)
+    found = None
+    for entry, (start, end) in zip(entries, spans):
+        if start <= lineno <= end:
+            return entry
+        if start <= lineno:
+            found = entry
+    return found
 
 
 def render(entries):

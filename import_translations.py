@@ -16,293 +16,84 @@ Examples:
 
 import sys
 import os
-import re
 import json
-import shutil
-from datetime import datetime
 from pathlib import Path
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import poutil  # noqa: E402
 
 
 class PoUpdater:
+    """Write translations from an extracted JSON payload back into a .po file."""
+
     def __init__(self, po_file, translations_data):
         self.po_file = po_file
         self.translations_data = translations_data
-        self.content = ""
         self.updated_count = 0
         self.fuzzy_cleared_count = 0
-        
+
     def update(self):
-        # Create backup
-        backup_file = f"{self.po_file}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        shutil.copy2(self.po_file, backup_file)
-        print(f"Created backup: {backup_file}")
-        
-        # Read the original file
-        with open(self.po_file, 'r', encoding='utf-8') as f:
-            self.content = f.read()
-        
-        # Create translation lookup maps
-        translations_map = {}
-        fuzzy_map = {}
-        
-        # Process regular entries
-        for entry in self.translations_data.get('entries', []):
-            if entry.get('translation'):
-                translations_map[entry['msgid']] = entry
-        
-        # Process fuzzy entries
-        for entry in self.translations_data.get('fuzzy_entries', []):
-            if entry.get('translation'):
-                fuzzy_map[entry['msgid']] = entry
-        
-        # Process the content
-        updated_content = self._process_content(translations_map, fuzzy_map)
-        
-        # Write the updated file
-        with open(self.po_file, 'w', encoding='utf-8') as f:
-            f.write(updated_content)
-        
-        print(f"\nUpdate complete!")
+        entries = poutil.parse(self.po_file)
+        print(f"Created backup: {poutil.backup(self.po_file)}")
+
+        regular = {e['msgid']: e for e in self.translations_data.get('entries', [])
+                   if e.get('translation')}
+        fuzzy = {e['msgid']: e for e in self.translations_data.get('fuzzy_entries', [])
+                 if e.get('translation')}
+
+        for entry in entries:
+            if entry.obsolete or not entry.msgid:
+                continue
+            payload = regular.get(entry.msgid) or fuzzy.get(entry.msgid)
+            if payload is None:
+                continue
+
+            if entry.msgid_plural and payload.get('translations'):
+                for index_str, text in payload['translations'].items():
+                    entry.set_plural(int(index_str), text)
+                    self.updated_count += 1
+            elif not entry.msgid_plural:
+                entry.msgstr = payload['translation']
+                self.updated_count += 1
+
+            if entry.msgid in fuzzy and entry.clear_fuzzy():
+                self.fuzzy_cleared_count += 1
+
+        poutil.write(self.po_file, entries)
+
+        print("\nUpdate complete!")
         print(f"- Translations updated: {self.updated_count}")
         print(f"- Fuzzy flags cleared: {self.fuzzy_cleared_count}")
-        
         return True
-    
-    def _process_content(self, translations_map, fuzzy_map):
-        # Split content into blocks
-        blocks = re.split(r'(\n\s*\n)', self.content)
-        updated_blocks = []
-        
-        for i, block in enumerate(blocks):
-            if not block.strip():
-                updated_blocks.append(block)
-                continue
-            
-            # Parse the block to extract msgid
-            msgid = self._extract_msgid(block)
-            
-            if msgid and (msgid in translations_map or msgid in fuzzy_map):
-                # This block needs to be updated
-                if msgid in translations_map:
-                    updated_block = self._update_block(block, translations_map[msgid], False)
-                else:
-                    updated_block = self._update_block(block, fuzzy_map[msgid], True)
-                updated_blocks.append(updated_block)
-            else:
-                updated_blocks.append(block)
-        
-        return ''.join(updated_blocks)
-    
-    def _extract_msgid(self, block):
-        """Extract msgid from a block."""
-        lines = block.strip().split('\n')
-        msgid_lines = []
-        in_msgid = False
-        
-        for line in lines:
-            if line.strip().startswith('msgid "'):
-                in_msgid = True
-                msgid_lines.append(self._extract_string(line[6:].strip()))
-            elif in_msgid and line.strip().startswith('"'):
-                msgid_lines.append(self._extract_string(line.strip()))
-            elif in_msgid and not line.strip().startswith('"'):
-                break
-        
-        return ''.join(msgid_lines)
-    
-    def _update_block(self, block, translation_entry, is_fuzzy):
-        """Update a block with new translation."""
-        lines = block.strip().split('\n')
-        updated_lines = []
-        
-        # Track what we're currently parsing
-        in_msgstr = False
-        in_msgstr_plural = False
-        current_plural_index = -1
-        skip_next = False
-        
-        for i, line in enumerate(lines):
-            if skip_next:
-                skip_next = False
-                continue
-            
-            # Remove fuzzy flag if this is a fuzzy entry being updated
-            if is_fuzzy and line.strip().startswith('#,') and 'fuzzy' in line:
-                flags = [f.strip() for f in line[2:].split(',') if f.strip() != 'fuzzy']
-                if flags:
-                    updated_lines.append(f"#, {', '.join(flags)}")
-                self.fuzzy_cleared_count += 1
-                continue
-            
-            # Handle msgstr for singular
-            if line.strip().startswith('msgstr "') and 'msgid_plural' not in translation_entry:
-                translation = translation_entry['translation']
-                formatted_translation = self._format_string(translation)
-                updated_lines.append(f'msgstr {formatted_translation[0]}')
-                
-                # Add continuation lines if needed
-                for cont_line in formatted_translation[1:]:
-                    updated_lines.append(cont_line)
-                
-                # Skip original msgstr continuation lines
-                j = i + 1
-                while j < len(lines) and lines[j].strip().startswith('"'):
-                    j += 1
-                skip_next = j - i - 1
-                
-                self.updated_count += 1
-                in_msgstr = False
-                
-            # Handle msgstr[n] for plurals
-            elif re.match(r'msgstr\[\d+\] ', line.strip()):
-                match = re.match(r'msgstr\[(\d+)\] ', line.strip())
-                if match and 'translations' in translation_entry:
-                    index = int(match.group(1))
-                    if str(index) in translation_entry['translations']:
-                        translation = translation_entry['translations'][str(index)]
-                        formatted_translation = self._format_string(translation)
-                        updated_lines.append(f'msgstr[{index}] {formatted_translation[0]}')
-                        
-                        # Add continuation lines if needed
-                        for cont_line in formatted_translation[1:]:
-                            updated_lines.append(cont_line)
-                        
-                        # Skip original msgstr[n] continuation lines
-                        j = i + 1
-                        while j < len(lines) and lines[j].strip().startswith('"'):
-                            j += 1
-                        skip_next = j - i - 1
-                        
-                        self.updated_count += 1
-                    else:
-                        updated_lines.append(line)
-                else:
-                    updated_lines.append(line)
-            else:
-                updated_lines.append(line)
-        
-        return '\n'.join(updated_lines)
-    
-    def _extract_string(self, s):
-        """Extract string content from quoted string."""
-        s = s.strip()
-        if s.startswith('"') and s.endswith('"'):
-            s = s[1:-1]
-            # Unescape common sequences
-            s = s.replace('\\n', '\n')
-            s = s.replace('\\t', '\t')
-            s = s.replace('\\"', '"')
-            s = s.replace('\\\\', '\\')
-        return s
-    
-    def _format_string(self, s):
-        """Format a string for .po file output."""
-        # Escape special characters
-        s = s.replace('\\', '\\\\')
-        s = s.replace('"', '\\"')
-        s = s.replace('\t', '\\t')
-        
-        # Split by newlines and format
-        lines = s.split('\n')
-        
-        if len(lines) == 1 and len(s) < 70:
-            # Single line, short enough
-            return [f'"{s}"']
-        else:
-            # Multi-line or long string
-            result = ['""']  # Empty first line
-            for i, line in enumerate(lines):
-                if i < len(lines) - 1:
-                    result.append(f'"{line}\\n"')
-                else:
-                    if line:  # Don't add empty last line
-                        result.append(f'"{line}"')
-            return result
 
 
 def build_translations_data_from_dict(locale, dict_file, po_file):
-    """Build translations_data from a simple {msgid: translation} JSON dict.
+    """Turn a flat {msgid: translation} dict into the extracted-JSON shape.
 
-    Reads the .po file to find untranslated and fuzzy entries, then matches
-    them against the provided dict to produce the same format that
-    extract_untranslated.py generates.
+    Only entries that still need translating are filled. That includes entries whose
+    msgstr merely echoes the English msgid, which the previous implementation skipped
+    because it tested for an empty msgstr alone.
     """
-    with open(dict_file, 'r', encoding='utf-8') as f:
-        trans_dict = json.load(f)
+    with open(dict_file, 'r', encoding='utf-8') as fh:
+        trans_dict = json.load(fh)
 
-    with open(po_file, 'r', encoding='utf-8') as f:
-        content = f.read()
+    data = {'locale': locale, 'entries': [], 'fuzzy_entries': []}
 
-    translations_data = {
-        'locale': locale,
-        'entries': [],
-        'fuzzy_entries': [],
-    }
-
-    blocks = re.split(r'(\n\s*\n)', content)
-    for block in blocks:
-        if not block.strip():
+    for entry in poutil.parse(po_file):
+        if entry.obsolete or not entry.msgid or entry.msgid not in trans_dict:
             continue
-
-        # Check if fuzzy
-        is_fuzzy = bool(re.search(r'^#,.*fuzzy', block, re.MULTILINE))
-
-        # Extract msgid
-        msgid_match = re.search(r'^msgid "(.*)"', block, re.MULTILINE)
-        if not msgid_match:
+        if not (poutil.is_untranslated(entry, locale) or entry.is_fuzzy):
             continue
-        msgid_lines = [msgid_match.group(1)]
-        # Collect continuation lines after msgid
-        pos = block.index(msgid_match.group(0)) + len(msgid_match.group(0))
-        rest = block[pos:]
-        for line in rest.split('\n'):
-            line = line.strip()
-            if line.startswith('"') and line.endswith('"'):
-                msgid_lines.append(line[1:-1])
-            elif line.startswith('msgstr') or line.startswith('msgid_plural'):
-                break
-            elif line and not line.startswith('#'):
-                break
+        payload = {'msgid': entry.msgid, 'translation': trans_dict[entry.msgid]}
+        if entry.is_fuzzy:
+            payload['current_translation'] = entry.msgstr
+            data['fuzzy_entries'].append(payload)
+        else:
+            data['entries'].append(payload)
 
-        msgid = ''.join(msgid_lines)
-        msgid = msgid.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
-
-        if not msgid:
-            continue
-
-        # Extract msgstr
-        msgstr_match = re.search(r'^msgstr "(.*)"', block, re.MULTILINE)
-        if not msgstr_match:
-            continue
-        msgstr_lines = [msgstr_match.group(1)]
-        pos = block.index(msgstr_match.group(0)) + len(msgstr_match.group(0))
-        rest = block[pos:]
-        for line in rest.split('\n'):
-            line = line.strip()
-            if line.startswith('"') and line.endswith('"'):
-                msgstr_lines.append(line[1:-1])
-            else:
-                break
-        msgstr = ''.join(msgstr_lines)
-
-        is_untranslated = not msgstr
-
-        if (is_untranslated or is_fuzzy) and msgid in trans_dict:
-            entry = {
-                'msgid': msgid,
-                'translation': trans_dict[msgid],
-            }
-            if is_fuzzy:
-                entry['current_translation'] = msgstr
-                translations_data['fuzzy_entries'].append(entry)
-            else:
-                translations_data['entries'].append(entry)
-
-    filled = len(translations_data['entries']) + len(translations_data['fuzzy_entries'])
-    unmatched = len(trans_dict) - filled
-    print(f"Matched {filled} entries from dict ({unmatched} dict entries not needed)")
-
-    return translations_data
+    filled = len(data['entries']) + len(data['fuzzy_entries'])
+    print(f"Matched {filled} entries from dict ({len(trans_dict) - filled} dict entries not needed)")
+    return data
 
 
 def main():

@@ -12,6 +12,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import poutil  # noqa: E402
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _TAG_RE = re.compile(r'<[^<>]+>')
@@ -64,83 +67,23 @@ def repair_msgstr(msgid: str, msgstr: str) -> str:
 
 
 def fix_po(po_path: str):
-    with open(po_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Walk blocks; for each entry, extract msgid + msgstr (handling multi-line), repair, write back.
-    blocks = re.split(r"\n\s*\n", content)
+    entries = poutil.parse(po_path)
     repaired_count = 0
-    new_blocks = []
-    for block in blocks:
-        if not block.strip():
-            new_blocks.append(block)
-            continue
-        msgid = _extract(block, "msgid")
-        msgstr = _extract(block, "msgstr")
-        if not msgid or not msgstr:
-            new_blocks.append(block)
+
+    for entry in entries:
+        if entry.obsolete or not entry.msgid or not entry.msgstr:
             continue
         # Only act if msgstr clearly has a sentinel leak. Includes ZZ-pattern leaks,
         # quote-wrapped digits, and bullet artifacts from prior sentinel formats.
-        if not re.search(r'Z\d+Z|ZZ\d+|"\d+"|•\s*\d+|\d+\s*•|"\s*•\s*\d+\s*"', msgstr):
-            new_blocks.append(block)
+        if not re.search(r'Z\d+Z|ZZ\d+|"\d+"|\u2022\s*\d+|\d+\s*\u2022|"\s*\u2022\s*\d+\s*"', entry.msgstr):
             continue
-        fixed = repair_msgstr(msgid, msgstr)
-        if fixed != msgstr:
+        fixed = repair_msgstr(entry.msgid, entry.msgstr)
+        if fixed != entry.msgstr:
+            entry.msgstr = fixed
             repaired_count += 1
-            # Replace the msgstr block with a single-line clean form
-            block = _rewrite_msgstr(block, fixed)
-        new_blocks.append(block)
 
-    with open(po_path, "w", encoding="utf-8") as f:
-        f.write("\n\n".join(new_blocks))
-
+    poutil.write(po_path, entries)
     print(f"Repaired {repaired_count} entries in {po_path}")
-
-
-def _extract(block: str, key: str):
-    pattern = rf'^{re.escape(key)}\s+"(.*)"$'
-    m = re.search(pattern, block, re.MULTILINE)
-    if not m:
-        return None
-    parts = [m.group(1)]
-    pos = block.index(m.group(0)) + len(m.group(0))
-    for line in block[pos:].split("\n"):
-        s = line.strip()
-        if not s:
-            continue
-        if s.startswith('"') and s.endswith('"'):
-            parts.append(s[1:-1])
-        else:
-            break
-    # Unescape only PO-relevant sequences. Don't re-encode through latin-1 as that
-    # mangles UTF-8 multi-byte characters like Danish æ/ø/å.
-    text = "".join(parts)
-    text = text.replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')
-    return text
-
-
-def _rewrite_msgstr(block: str, new_msgstr: str) -> str:
-    """Find the msgstr block and replace it with a single-line clean form."""
-    lines = block.split("\n")
-    out = []
-    in_msgstr = False
-    skipped_continuation = False
-    for line in lines:
-        if line.startswith("msgstr"):
-            in_msgstr = True
-            out.append(f'msgstr "{_escape(new_msgstr)}"')
-            continue
-        if in_msgstr and line.strip().startswith('"') and line.strip().endswith('"'):
-            skipped_continuation = True
-            continue
-        in_msgstr = False
-        out.append(line)
-    return "\n".join(out)
-
-
-def _escape(s: str) -> str:
-    return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\t", "\\t")
 
 
 if __name__ == "__main__":
