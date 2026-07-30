@@ -76,7 +76,7 @@ Examples:
   ./scripts/cleanup_obsolete_translations.sh --stats-only
 
 Prerequisites:
-  - Run ./scripts/extract_strings.sh first to generate the template
+  - Run ./scripts/extract_strings.py first to generate the template
   - gettext tools (msgcomm, msgattrib, msgfmt) should be installed
 
 EOF
@@ -145,7 +145,7 @@ validate_environment() {
     
     if [ -z "$MODULE_NAME" ] && [ ! -f "$TEMPLATE_FILE" ]; then
         error "Template file not found: $TEMPLATE_FILE"
-        error "Please run ./scripts/extract_strings.sh first to generate the template."
+        error "Please run ./scripts/extract_strings.py first to generate the template."
         return 1
     fi
     

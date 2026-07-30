@@ -22,8 +22,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Check if both scripts exist
-EXTRACT_SCRIPT="$SCRIPT_DIR/extract_strings.sh"
-MERGE_SCRIPT="$SCRIPT_DIR/merge_messages.sh"
+EXTRACT_SCRIPT="$SCRIPT_DIR/extract_strings.py"
+MERGE_SCRIPT="$SCRIPT_DIR/merge_messages.py"
 COMPILE_SCRIPT="$SCRIPT_DIR/compile_messages.sh"
 
 for script in "$EXTRACT_SCRIPT" "$MERGE_SCRIPT" "$COMPILE_SCRIPT"; do
@@ -33,12 +33,10 @@ for script in "$EXTRACT_SCRIPT" "$MERGE_SCRIPT" "$COMPILE_SCRIPT"; do
     fi
 done
 
-# Execute scripts
-echo "Extracting strings..."
-cd "$PROJECT_ROOT" && ./scripts/extract_strings.sh
-
-echo "Merging messages..."
-cd "$PROJECT_ROOT" && ./scripts/merge_messages.sh
+# Execute scripts. merge_messages.py regenerates the template itself, so the
+# extract step is not repeated here.
+echo "Merging messages (regenerates the template first)..."
+cd "$PROJECT_ROOT" && python3 ./scripts/merge_messages.py
 
 echo "Compiling messages..."
 cd "$PROJECT_ROOT" && ./scripts/compile_messages.sh

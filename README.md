@@ -19,12 +19,13 @@ Everything is stdlib except `translate_new_locale.py`; see `requirements.txt`.
 
 ## Localization pipeline
 
-The three stages, in order. `update_messages.sh` runs all three.
+The three stages, in order. `update_messages.sh` runs them all; the merge step regenerates the template
+itself, so stage 1 does not need a separate run.
 
 | Stage | Script | Writes |
 |---|---|---|
-| 1. Extract | `extract_strings.sh` | `locale/i18n-template-php.pot` |
-| 2. Merge | `merge_messages.sh` | every `locale/*/LC_MESSAGES/messages.po` (+ timestamped backups) |
+| 1. Extract | `extract_strings.py` | `locale/i18n-template-php.pot` |
+| 2. Merge | `merge_messages.py` | every `locale/*/LC_MESSAGES/messages.po` (+ timestamped backups) |
 | 3. Compile | `compile_messages.sh` | every `locale/*/LC_MESSAGES/messages.mo` |
 
 Extraction scans `lib/**/*.php` and `install/helpers/**/*.php` with `xgettext`, plus Twig templates for
