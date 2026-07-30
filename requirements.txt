@@ -1,0 +1,4 @@
+# Only translate_new_locale.py needs a third-party package; everything else is stdlib.
+# Argos runs fully offline - install the en->target model before use, e.g.:
+#   python3 -c "import argostranslate.package as p; p.update_package_index()"
+argostranslate
