@@ -3,15 +3,11 @@
 
 Usage: python3 scripts/extract_strings.py
 
-Replaces extract_strings.sh. gettext tools and `find` are still invoked as
-subprocesses so the output ordering matches byte for byte.
+gettext tools and `find` are invoked as subprocesses so output ordering is stable.
 
-Note the template scan is line based: a {% trans %} block spread over several
-lines is not picked up. Changing that would surface new msgids and force a merge
-across every locale, so it is left as-is deliberately.
-
-Output matches extract_strings.sh, plus four msgids its awk collector dropped
-because it only flushed an entry when a blank line followed it.
+The template scan is line based: a {% trans %} block spread over several lines is
+not picked up. Widening it would surface new msgids and force a merge across every
+locale, so it is left alone deliberately.
 """
 import os
 import re
@@ -72,7 +68,7 @@ def pot_header(ver, stamp, language=''):
 
 
 def find_files(root, args):
-    """Run find so traversal order matches the shell version exactly."""
+    """Run find so traversal order stays stable across runs."""
     if not os.path.isdir(os.path.join(ROOT, root)):
         return []
     out = subprocess.run(['find', root] + args, cwd=ROOT,
@@ -95,7 +91,7 @@ def xgettext_php(root, dest, ver):
 
 
 def fix_pot_header(path, year):
-    """The header rewrites xgettext's placeholders, as the sed block did."""
+    """Replace xgettext's placeholder header fields with real values."""
     if not os.path.isfile(path) or os.path.getsize(path) == 0:
         return
     with open(path, encoding='utf-8') as fh:
@@ -151,10 +147,7 @@ def build_template_pot(dest, roots, ver, stamp):
 
 
 def collect_records(source):
-    """Entries that start with a `#:` location line, as the awk block did.
-
-    An entry not followed by a blank line is dropped, matching the shell version.
-    """
+    """Entries that start with a `#:` location line, headers excluded."""
     if not os.path.isfile(source) or os.path.getsize(source) == 0:
         return ''
     emitted = []

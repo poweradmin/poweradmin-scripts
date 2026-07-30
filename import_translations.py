@@ -71,8 +71,7 @@ def build_translations_data_from_dict(locale, dict_file, po_file):
     """Turn a flat {msgid: translation} dict into the extracted-JSON shape.
 
     Only entries that still need translating are filled. That includes entries whose
-    msgstr merely echoes the English msgid, which the previous implementation skipped
-    because it tested for an empty msgstr alone.
+    msgstr merely echoes the English msgid, not only those with an empty msgstr.
     """
     with open(dict_file, 'r', encoding='utf-8') as fh:
         trans_dict = json.load(fh)

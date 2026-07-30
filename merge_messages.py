@@ -3,16 +3,11 @@
 
 Usage: python3 scripts/merge_messages.py
 
-Replaces merge_messages.sh. Entries left without a translation are filled from
-en_EN and flagged `#, auto-english-fallback`.
+Entries left without a translation are filled from en_EN and flagged
+`#, auto-english-fallback`, multi-line msgids included.
 
-Text is manipulated as raw .po source rather than through poutil, because the
-shell version reflowed entry separators and this keeps the output identical.
-
-Output matches merge_messages.sh, with two exceptions: multi-line msgids now get
-their English fallback too (the shell passed the map through a tab-separated
-file, which broke on embedded newlines), and the two hardcoded absolute
-line-number sed repairs it carried are gone.
+Text is manipulated as raw .po source rather than through poutil so that entry
+separators come out normalised the way gettext writes them.
 """
 import os
 import re

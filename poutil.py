@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Shared .po parsing for the locale scripts.
 
-Every tool here used to carry its own msgid/msgstr parser, which had drifted apart
-(multi-line msgids truncated in some, different rules for what counts as
-untranslated). This module is the single implementation.
+The single msgid/msgstr parser for this toolchain, including the rule for what
+counts as untranslated.
 
 Rewriting is deliberately conservative: an entry that was not modified is written
 back byte for byte, so running a tool over a locale only touches what it changed.
@@ -300,8 +299,6 @@ def is_untranslated(entry, locale=None):
     """Empty msgstr, or msgstr echoing the msgid.
 
     en_EN is exempt from the echo rule: there the two are identical by definition.
-    The old extract_untranslated.py applied the rule to every locale and so
-    reported the whole English catalogue as untranslated.
     """
     if entry.obsolete or entry.is_header or not entry.msgid:
         return False
