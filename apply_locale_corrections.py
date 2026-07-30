@@ -143,6 +143,61 @@ def _subs_ms():
         (r"\b(\w{3,})\b(?: \1\b)+", r"\1"),
         # Argos split "E-mel" (email) across the hyphen
         (r"\bE- mel\b", "E-mel"),
+
+        # Argos produced Indonesian vocabulary rather than Malay. These pairs have
+        # no competing sense in this UI, so they substitute unconditionally.
+        (r"\bditemukan\b", "dijumpai"),
+        (r"\bDitemukan\b", "Dijumpai"),
+        (r"\bprioritas\b", "keutamaan"),
+        (r"\bPrioritas\b", "Keutamaan"),
+        (r"\bcocok\b", "sepadan"),
+        (r"\bKelompok\b", "Kumpulan"),
+        (r"\bkelompok\b", "kumpulan"),
+        (r"\bberkas\b", "fail"),
+        (r"\bBerkas\b", "Fail"),
+        (r"\bsilakan\b", "sila"),
+        (r"\bSilakan\b", "Sila"),
+        (r"\bgalat\b", "ralat"),
+        (r"\bGalat\b", "Ralat"),
+        (r"\bsertifikat\b", "sijil"),
+        (r"\bSertifikat\b", "Sijil"),
+        (r"\bdinonaktifkan\b", "dilumpuhkan"),
+        (r"\bdiperbarui\b", "dikemas kini"),
+        (r"\bnomor\b", "nombor"),
+        (r"\bNomor\b", "Nombor"),
+        (r"\btombol\b", "butang"),
+        (r"\bpersentase\b", "peratusan"),
+        (r"\bPersentase\b", "Peratusan"),
+        (r"\bpengaturan\b", "tetapan"),
+        (r"\bPengaturan\b", "Tetapan"),
+        (r"\bkebijakan\b", "dasar"),
+        (r"\bKebijakan\b", "Dasar"),
+        (r"\bkomentar\b", "komen"),
+        (r"\bKomentar\b", "Komen"),
+        (r"\btidak valid\b", "tidak sah"),
+        (r"\bTidak valid\b", "Tidak sah"),
+        (r"\bdihapus\b", "dipadam"),
+        (r"\bDihapus\b", "Dipadam"),
+        (r"\bkarena\b", "kerana"),
+        (r"\bKarena\b", "Kerana"),
+        (r"\bmengirim\b", "menghantar"),
+        (r"\btipe\b", "jenis"),
+        (r"\bTipe\b", "Jenis"),
+        (r"\bkeamanan\b", "keselamatan"),
+        (r"\bKeamanan\b", "Keselamatan"),
+        (r"\bbisa\b", "boleh"),
+        # "rekor" is the Indonesian spelling; the DNS term is "rekod"
+        (r"\brekor\b", "rekod"),
+        (r"\bRekor\b", "Rekod"),
+        (r"\brekaman\b", "rekod"),
+        (r"\bRekaman\b", "Rekod"),
+
+        # "catatan" renders both Record and Note, so it only becomes "rekod" when
+        # the English source is about a record. Same for "rekaman".
+        ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bCatatan\b", "Rekod"),
+        ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bcatatan\b", "rekod"),
+        ((r"\bpermission", None), r"\bIzin\b", "Kebenaran"),
+        ((r"\bpermission", None), r"\bizin\b", "kebenaran"),
     ]
 
 
