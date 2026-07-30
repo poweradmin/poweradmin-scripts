@@ -579,13 +579,53 @@ def restore_identifiers(po_path: str):
     return changes
 
 
+# The translator glued a stray capital Z (sometimes ZZ) onto placeholders, so
+# "got %d." renders as "got 64Z.". A real translation never puts a bare capital
+# Z straight after a placeholder, which is what makes this safe to strip.
+_PLACEHOLDER_LEAK = re.compile(r"(%(?:\d+\$)?[sdfucxXob])Z+")
+
+
+def strip_placeholder_leaks(po_path: str):
+    """Remove stray letters the translator appended to printf placeholders."""
+    entries = poutil.parse(po_path)
+
+    changes = 0
+    for entry in entries:
+        if entry.obsolete or entry.is_header or not entry.msgid:
+            continue
+
+        def fix(text):
+            # Leave it alone when the source really does have a Z there.
+            if not text or _PLACEHOLDER_LEAK.search(entry.msgid):
+                return text
+            return _PLACEHOLDER_LEAK.sub(r"\1", text)
+
+        if entry.plurals:
+            for n in sorted(entry.plurals):
+                new = fix(entry.plurals[n])
+                if new != entry.plurals[n]:
+                    entry.set_plural(n, new)
+                    changes += 1
+        elif entry.msgstr:
+            new = fix(entry.msgstr)
+            if new != entry.msgstr:
+                entry.msgstr = new
+                changes += 1
+
+    if changes:
+        poutil.write(po_path, entries)
+    print(f"Stripped placeholder leaks in {changes} entries in {po_path}")
+    return changes
+
+
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <locale> [--identifiers]", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <locale> [--identifiers|--placeholders]", file=sys.stderr)
         sys.exit(1)
     locale = sys.argv[1]
     identifiers_only = "--identifiers" in sys.argv[2:]
-    if not identifiers_only and locale not in SUBS_BY_LOCALE:
+    placeholders_only = "--placeholders" in sys.argv[2:]
+    if not (identifiers_only or placeholders_only) and locale not in SUBS_BY_LOCALE:
         print(f"Unknown locale: {locale}", file=sys.stderr)
         sys.exit(1)
     po_path = os.path.join(ROOT, f"locale/{locale}/LC_MESSAGES/messages.po")
@@ -594,6 +634,8 @@ def main():
         sys.exit(1)
     if identifiers_only:
         restore_identifiers(po_path)
+    elif placeholders_only:
+        strip_placeholder_leaks(po_path)
     else:
         apply_corrections(po_path, SUBS_BY_LOCALE[locale])
 
