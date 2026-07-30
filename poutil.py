@@ -49,7 +49,7 @@ class Entry:
     """One .po block. Assigning msgstr or plurals marks it dirty for rewriting."""
 
     __slots__ = ('raw', 'sep', 'msgid', 'msgid_plural', 'locations', 'flags',
-                 'obsolete', '_msgstr', '_plurals', '_dirty')
+                 'comments', 'obsolete', '_msgstr', '_plurals', '_dirty')
 
     def __init__(self, raw, sep=''):
         self.raw = raw
@@ -58,6 +58,7 @@ class Entry:
         self.msgid_plural = ''
         self.locations = []
         self.flags = []
+        self.comments = []
         self.obsolete = False
         self._msgstr = ''
         self._plurals = {}
@@ -85,6 +86,10 @@ class Entry:
     @property
     def is_header(self):
         return self.msgid == '' and not self.obsolete
+
+    @property
+    def is_fuzzy(self):
+        return 'fuzzy' in self.flags
 
     @property
     def dirty(self):
@@ -142,6 +147,9 @@ def _parse_block(raw, sep):
             i += 1
         elif stripped.startswith('#,'):
             entry.flags = [f.strip() for f in stripped[2:].split(',') if f.strip()]
+            i += 1
+        elif stripped.startswith('#'):
+            entry.comments.append(stripped)
             i += 1
         elif stripped.startswith('msgid_plural '):
             entry.msgid_plural, i = collect(stripped[13:], i + 1)

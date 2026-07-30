@@ -12,7 +12,10 @@ import os
 import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import poutil  # noqa: E402
+
+ROOT = poutil.ROOT
 
 
 def _subs_da():
@@ -366,39 +369,56 @@ SUBS_BY_LOCALE = {
 }
 
 
-def apply_corrections(po_path: str, subs):
-    """Walk the .po file and apply substitutions to msgstr lines AND their continuations.
+def _matches_guard(entry, guard):
+    """A guard is (include_pattern, exclude_pattern); either may be None."""
+    include, exclude = guard
+    if include and not re.search(include, entry.msgid, re.IGNORECASE):
+        return False
+    if exclude and re.search(exclude, entry.msgid, re.IGNORECASE):
+        return False
+    return True
 
-    Tracks an in_msgstr state so multi-line msgstr blocks (where a leading `msgstr ""`
-    is followed by indented `"..."` continuation lines) get processed too.
+
+def apply_corrections(po_path: str, subs):
+    """Apply substitutions to the msgstr of every entry.
+
+    A rule is either a 2-tuple (pattern, replacement) applied unconditionally, or a
+    3-tuple (guard, pattern, replacement) where guard is (include, exclude) matched
+    against the English msgid. The guarded form exists because a single translated
+    word can render two different sources - Malay "catatan" is both Record and Note -
+    so a blind substitution would corrupt the entries it does not mean to touch.
     """
-    with open(po_path, "r", encoding="utf-8") as f:
-        lines = f.read().split("\n")
+    entries = poutil.parse(po_path)
 
     changes = 0
-    new_lines = []
-    in_msgstr = False
-    for line in lines:
-        if line.startswith("msgstr"):
-            in_msgstr = True
-        elif line.startswith("msgid") or line.startswith("#") or not line.strip():
-            in_msgstr = False
+    for entry in entries:
+        if entry.obsolete or entry.is_header:
+            continue
 
-        if in_msgstr and '"' in line:
-            m = re.match(r'^((?:msgstr(?:\[\d+\])?\s+)?")(.*)("$)', line)
-            if m:
-                prefix, content, suffix = m.group(1), m.group(2), m.group(3)
-                new_content = content
-                for pattern, repl in subs:
-                    new_content = re.sub(pattern, repl, new_content)
-                if new_content != content:
+        def rewrite(text):
+            for rule in subs:
+                if len(rule) == 3:
+                    guard, pattern, repl = rule
+                    if not _matches_guard(entry, guard):
+                        continue
+                else:
+                    pattern, repl = rule
+                text = re.sub(pattern, repl, text)
+            return text
+
+        if entry.plurals:
+            for n in sorted(entry.plurals):
+                new = rewrite(entry.plurals[n])
+                if new != entry.plurals[n]:
+                    entry.set_plural(n, new)
                     changes += 1
-                line = prefix + new_content + suffix
-        new_lines.append(line)
+        elif entry.msgstr:
+            new = rewrite(entry.msgstr)
+            if new != entry.msgstr:
+                entry.msgstr = new
+                changes += 1
 
-    with open(po_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(new_lines))
-
+    poutil.write(po_path, entries)
     print(f"Applied {changes} substitutions to {po_path}")
     return changes
 
