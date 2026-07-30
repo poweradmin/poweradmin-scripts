@@ -201,6 +201,29 @@ def _subs_ms():
     ]
 
 
+def _subs_id():
+    """Indonesian: normalize terminology that drifted between synonyms."""
+    return [
+        # "rekod" is Malay. This file settled on "rekaman" for a DNS record
+        # (562 entries against 98), so the stray Malay forms move to it.
+        (r"\brekod\b", "rekaman"),
+        (r"\bRekod\b", "Rekaman"),
+
+        # "templat" is the Indonesian spelling and already dominates 189 to 63.
+        # Indonesian has no plural -s, so "templates" collapses to the same word.
+        # A slash counts as a word boundary, so the lookaround is what keeps the
+        # literal path templates/emails/custom/ from being rewritten; the \b alone
+        # already excludes the underscored config key default_zone_template.
+        (r"(?<![/\\])\btemplates?\b(?![/\\])", "templat"),
+        (r"(?<![/\\])\bTemplates?\b(?![/\\])", "Templat"),
+
+        # "catatan" renders both Record and Note, so it only becomes "rekaman"
+        # when the English source is about a record.
+        ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bCatatan\b", "Rekaman"),
+        ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bcatatan\b", "rekaman"),
+    ]
+
+
 def _subs_pt_br():
     """pt_BR refinements after pt_PT seed: BR-natural phrasing."""
     return [
@@ -412,6 +435,7 @@ SUBS_BY_LOCALE = {
     "ga_IE": _subs_ga(),
     "mt_MT": _subs_mt(),
     "ms_MY": _subs_ms(),
+    "id_ID": _subs_id(),
     "pt_BR": _subs_pt_br(),
     "zh_TW": _subs_zh_tw(),
     "sq_AL": _subs_sq(),
@@ -451,6 +475,11 @@ def apply_corrections(po_path: str, subs):
             continue
 
         def rewrite(text):
+            # An English fallback is not a translation, so rewriting single words
+            # inside it only produces a mixed-language hybrid. merge_messages.py
+            # owns those entries; leave them for a real translation pass.
+            if text.strip() in (entry.msgid.strip(), (entry.msgid_plural or '').strip()):
+                return text
             for rule in subs:
                 if len(rule) == 3:
                     guard, pattern, repl = rule
