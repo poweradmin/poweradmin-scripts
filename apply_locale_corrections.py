@@ -618,9 +618,39 @@ def strip_placeholder_leaks(po_path: str):
     return changes
 
 
+def restore_trailing_whitespace(po_path: str):
+    """Put back trailing whitespace the translator dropped.
+
+    These msgids end in ": " because the caller appends a detail string. Losing
+    the space runs the detail into the colon, so the source's trailing run is
+    authoritative and can be restored without reading the language.
+    """
+    entries = poutil.parse(po_path)
+
+    changes = 0
+    for entry in entries:
+        if entry.obsolete or entry.is_header or not entry.msgid or not entry.msgstr:
+            continue
+
+        # No English-fallback guard here: appending the source's own trailing run
+        # cannot change what a translation says, and entries that are correct
+        # apart from the lost space (acronym labels like "HINFO ") need it too.
+        tail = entry.msgid[len(entry.msgid.rstrip()):]
+        if not tail or entry.msgstr.endswith(tail):
+            continue
+        entry.msgstr = entry.msgstr.rstrip() + tail
+        changes += 1
+
+    if changes:
+        poutil.write(po_path, entries)
+    print(f"Restored trailing whitespace in {changes} entries in {po_path}")
+    return changes
+
+
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <locale> [--identifiers|--placeholders]", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <locale> [--identifiers|--placeholders|--trailing]",
+              file=sys.stderr)
         sys.exit(1)
     locale = sys.argv[1]
     identifiers_only = "--identifiers" in sys.argv[2:]
