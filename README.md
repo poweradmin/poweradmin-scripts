@@ -73,12 +73,11 @@ register it in `SUBS_BY_LOCALE` to cover a new locale.
 
 The parent repo gates on these via `composer locale:check`.
 
-### cleanup_obsolete_translations.sh
+### cleanup_obsolete_translations.py
 
-Removes entries no longer present in the `.pot`.
-
-> **Known defect: do not run this yet.** It compares msgids using `sed 's/^msgid "//'`, so it only sees the first
-> line of a multi-line msgid and can classify a live entry as obsolete and delete it. Always pass `--dry-run` first.
+Removes entries no longer present in the `.pot`, matching on the full msgid so multi-line entries are handled
+correctly. Flags: `--dry-run`, `--stats-only`, `--locale=`, `--module=`, `--force-check`, `--no-backup`.
+The catalogue currently has zero obsolete entries.
 
 ## Other tooling
 
