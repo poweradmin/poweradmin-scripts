@@ -18,8 +18,10 @@ Classes
   identifiers  a config key, table name or path is not verbatim (hard)
   trailing     msgid ends in whitespace but the translation does not (hard)
   boilerplate  text from outside this application, e.g. Twitter chrome (hard)
+  repetition   a short token repeated until it is most of the string (hard)
   numerals     a number in the msgid is missing from the translation (soft)
   truncation   translation under half the source length, non-CJK only (soft)
+  rrtype       a record type or protocol name is missing entirely (soft)
   crosswire    the translation appears to render a different msgid (soft)
 """
 import os
@@ -30,8 +32,9 @@ from collections import Counter, defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import poutil  # noqa: E402
 
-HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boilerplate')
-SOFT = ('numerals', 'truncation', 'crosswire')
+HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boilerplate',
+        'repetition')
+SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire')
 
 # Chinese, Japanese and Korean are far more compact than English, so the length
 # ratio that finds dropped clauses elsewhere flags healthy text here.
@@ -60,6 +63,14 @@ BOILERPLATE = re.compile(
 # Acronyms only: hyphen excluded so "DNS-Assistenten" yields DNS, and a 3-char
 # floor so uppercase emphasis words like ALL and KEY stay out.
 ACRONYM = re.compile(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{2,}(?![A-Za-z0-9])')
+# Record types and protocol names, which survive verbatim in every language.
+# Names that are also ordinary English words (KEY, SIG, URI, CERT, LOC, RP,
+# ALIAS) are excluded, because translating those is correct.
+RRTYPE = frozenset('''
+    SOA CNAME AAAA CAA DNSKEY RRSIG NSEC NSEC3 TLSA SSHFP NAPTR HINFO SPF DKIM DMARC
+    TSIG DNSSEC SVCB ZONEMD EUI48 EUI64 IPSECKEY OPENPGPKEY SMIMEA CSYNC DHCID
+    TXT SRV PTR MX
+'''.split())
 SIGNIFICANT = re.compile(r'(?<![A-Za-z0-9])(?:[A-Z][A-Za-z0-9]{2,}|\d+)(?![A-Za-z0-9])')
 STOPWORDS = {'The', 'And', 'For', 'You', 'Not', 'This', 'That', 'Use', 'Using',
              'Please', 'Only', 'All', 'Each', 'New'}
@@ -94,12 +105,23 @@ def check_entry(entry, locale):
     if BOILERPLATE.search(dst) and not BOILERPLATE.search(src):
         hits.append('boilerplate')
 
+    words = dst.split()
+    if len(words) >= 6:
+        token, count = Counter(words).most_common(1)[0]
+        if len(token) <= 2 and count >= 6 and count >= len(words) * 0.4:
+            hits.append('repetition')
+
     # Soft: a translation may legitimately reformat a decimal separator, so a
     # missing numeral is a prompt to look rather than proof of damage.
     if set(NUMERAL.findall(src)) - set(NUMERAL.findall(dst)):
         hits.append('numerals')
     if locale not in CJK and len(re.findall(r'\S+', src)) >= 8 and len(dst) < len(src) * 0.5:
         hits.append('truncation')
+    # Soft: matched as a plain substring on the target so a glued form such as
+    # Japanese "NullMXレコード" still counts as present.
+    if any(t not in dst for t in RRTYPE
+           if re.search(rf'(?<![A-Za-z0-9]){t}(?![A-Za-z0-9])', src)):
+        hits.append('rrtype')
 
     return hits
 
