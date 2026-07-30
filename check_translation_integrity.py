@@ -55,10 +55,14 @@ IDENTIFIER = re.compile(
     r'|\b[\w-]+\.(?:php|html|twig|js|css|sql|dat|json|ya?ml|conf|ini)\b'
 )
 # Chrome from other products. Anchored so Danish "citationstegn" and French
-# "Félicitations" do not match on the "citation" substring.
+# "Félicitations" do not match on the "citation" substring. The second group is
+# warez and subtitle-release chrome the import spliced in; the Persian entries
+# match the full phrase because "دانلود" alone legitimately renders "Download".
 BOILERPLATE = re.compile(
     r'\b(?:tweet|tweets|retweet|twitter|facebook|instagram|wikipedia|accessdate'
-    r'|hashtag)\b', re.I
+    r'|hashtag|opensubtitles|addic7ed|yify|synced by|ripped by)\b'
+    r'|دانلود بازی|دانلود زیرنویس|دانلود فیلم|زیرنویس فارسی'
+    r'|titrat u sollen', re.I
 )
 # Acronyms only: hyphen excluded so "DNS-Assistenten" yields DNS, and a 3-char
 # floor so uppercase emphasis words like ALL and KEY stay out.
