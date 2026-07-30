@@ -19,14 +19,14 @@ Everything is stdlib except `translate_new_locale.py`; see `requirements.txt`.
 
 ## Localization pipeline
 
-The three stages, in order. `update_messages.sh` runs them all; the merge step regenerates the template
+The three stages, in order. `update_messages.py` runs them all; the merge step regenerates the template
 itself, so stage 1 does not need a separate run.
 
 | Stage | Script | Writes |
 |---|---|---|
 | 1. Extract | `extract_strings.py` | `locale/i18n-template-php.pot` |
 | 2. Merge | `merge_messages.py` | every `locale/*/LC_MESSAGES/messages.po` (+ timestamped backups) |
-| 3. Compile | `compile_messages.sh` | every `locale/*/LC_MESSAGES/messages.mo` |
+| 3. Compile | `compile_messages.py` | every `locale/*/LC_MESSAGES/messages.mo` |
 
 Extraction scans `lib/**/*.php` and `install/helpers/**/*.php` with `xgettext`, plus Twig templates for
 `{% trans %}...{% endtrans %}` and `'string'|trans`. **The template scan is line based**, so a `{% trans %}` block
@@ -40,7 +40,7 @@ Merging fills any empty `msgstr` with the English source and flags it `#, auto-e
 python3 scripts/extract_untranslated.py <locale>     # -> <locale>_untranslated.json
 # fill in the translations
 python3 scripts/import_translations.py <locale>_untranslated.json
-./scripts/compile_messages.sh
+python3 scripts/compile_messages.py
 ```
 
 `import_translations.py` also takes `<locale> --dict=<file.json>` for a flat `{msgid: translation}` map. Both forms
@@ -54,7 +54,7 @@ python3 scripts/fix_sentinel_leaks.py <locale>              # repair mangled pla
 python3 scripts/apply_locale_corrections.py <locale>        # per-locale terminology fixes
 python3 scripts/extract_failing_entries.py <locale>         # msgfmt failures -> JSON to hand-fix
 python3 scripts/fallback_to_english.py <locale>             # last resort for unrecoverable entries
-./scripts/compile_messages.sh
+python3 scripts/compile_messages.py
 ```
 
 Placeholders (`%s`, HTML tags) are masked as `ZZ<n>ZZ` sentinels before translation so the engine cannot reorder or
@@ -69,7 +69,7 @@ register it in `SUBS_BY_LOCALE` to cover a new locale.
 |---|---|
 | `check_translations.py` | empty and untranslated entries; exits 1 on findings |
 | `check_locale_unicode.py` | mojibake, hidden Unicode, MT artifacts; `--fix` repairs in place |
-| `check_translation_stats.sh` | per-locale completion table (also `composer locale:stats`) |
+| `check_translation_stats.py` | per-locale coverage, separating real translations from English fallbacks (also `composer locale:stats`) |
 
 The parent repo gates on these via `composer locale:check`.
 
@@ -82,5 +82,8 @@ The catalogue currently has zero obsolete entries.
 ## Other tooling
 
 Release and maintenance helpers (`pre-release-check.sh`, `optimize-for-release.sh`, `format.sh`, `toggle_install.sh`,
-`toggle_config.sh`, `e2e-sweep.sh`, `update_*.sh`, migration test scripts) and `proxy_test/`, an end to end check for
-`NO_PROXY` handling. See each file's header for usage.
+`toggle_config.sh`, `e2e-sweep.sh`, `update_*.sh`, `update_copyright.py`, migration test scripts) and `proxy_test/`,
+an end to end check for `NO_PROXY` handling. See each file's header for usage.
+
+The two `test-migration-*.sh` scripts still cover `sql/` update scripts that ship today (a 4.0 install upgrading to
+current runs them in sequence), but nothing invokes them automatically - run them by hand before a release.

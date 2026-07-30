@@ -330,7 +330,7 @@ def main():
 
     print('')
     print('Translation files have been updated. To compile .mo files, run:')
-    print('./scripts/compile_messages.sh')
+    print('python3 scripts/compile_messages.py')
     print('')
     print('Obsolete translations with actual content have been preserved for review.')
     print('')
