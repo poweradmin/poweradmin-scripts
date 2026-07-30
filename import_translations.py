@@ -3,10 +3,13 @@
 Import translations back into a .po file from a JSON file.
 
 Usage: python import_translations.py <json_file> [--module=ModuleName]
-       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName]
+       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName] [--force]
 
 The first form imports from an extracted untranslated JSON file (from extract_untranslated.py).
 The second form imports from a simple {msgid: translation} JSON dict directly into the .po file.
+
+By default only entries still needing translation are filled. Pass --force to overwrite
+existing translations too, which is what repairing corrupted machine output needs.
 
 Examples:
   python import_translations.py fr_FR_untranslated.json
@@ -67,7 +70,7 @@ class PoUpdater:
         return True
 
 
-def build_translations_data_from_dict(locale, dict_file, po_file):
+def build_translations_data_from_dict(locale, dict_file, po_file, force=False):
     """Turn a flat {msgid: translation} dict into the extracted-JSON shape.
 
     Only entries that still need translating are filled. That includes entries whose
@@ -81,7 +84,7 @@ def build_translations_data_from_dict(locale, dict_file, po_file):
     for entry in poutil.parse(po_file):
         if entry.obsolete or not entry.msgid or entry.msgid not in trans_dict:
             continue
-        if not (poutil.is_untranslated(entry, locale) or entry.is_fuzzy):
+        if not (force or poutil.is_untranslated(entry, locale) or entry.is_fuzzy):
             continue
         payload = {'msgid': entry.msgid, 'translation': trans_dict[entry.msgid]}
         if entry.is_fuzzy:
@@ -98,7 +101,7 @@ def build_translations_data_from_dict(locale, dict_file, po_file):
 def main():
     if len(sys.argv) < 2:
         print("Usage: python import_translations.py <json_file> [--module=ModuleName]")
-        print("       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName]")
+        print("       python import_translations.py <locale> --dict=<translations.json> [--module=ModuleName] [--force]")
         print()
         print("Examples:")
         print("  python import_translations.py fr_FR_untranslated.json")
@@ -107,6 +110,7 @@ def main():
 
     module_name = None
     dict_file = None
+    force = '--force' in sys.argv[2:]
 
     for arg in sys.argv[2:]:
         if arg.startswith("--module="):
@@ -132,7 +136,7 @@ def main():
             sys.exit(1)
 
         print(f"Loading translations dict from {dict_file}...")
-        translations_data = build_translations_data_from_dict(locale, dict_file, po_file)
+        translations_data = build_translations_data_from_dict(locale, dict_file, po_file, force)
     else:
         # Original mode: first arg is extracted JSON file
         json_file = sys.argv[1]
