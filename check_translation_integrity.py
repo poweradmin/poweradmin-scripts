@@ -19,6 +19,8 @@ Classes
   trailing     msgid ends in whitespace but the translation does not (hard)
   boilerplate  text from outside this application, e.g. Twitter chrome (hard)
   repetition   a short token repeated until it is most of the string (hard)
+  mixedscript  one word mixes Latin with Greek or Cyrillic letters (hard)
+  ipliteral    an IPv4 example address differs from the source (hard)
   numerals     a number in the msgid is missing from the translation (soft)
   truncation   translation under half the source length, non-CJK only (soft)
   rrtype       a record type or protocol name is missing entirely (soft)
@@ -27,13 +29,14 @@ Classes
 import os
 import re
 import sys
+import unicodedata
 from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import poutil  # noqa: E402
 
 HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boilerplate',
-        'repetition')
+        'repetition', 'mixedscript', 'ipliteral')
 SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire')
 
 # Chinese, Japanese and Korean are far more compact than English, so the length
@@ -70,6 +73,13 @@ ACRONYM = re.compile(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{2,}(?![A-Za-z0-9])')
 # Record types and protocol names, which survive verbatim in every language.
 # Names that are also ordinary English words (KEY, SIG, URI, CERT, LOC, RP,
 # ALIAS) are excluded, because translating those is correct.
+WORD = re.compile(r'[^\W\d_]{2,}', re.UNICODE)
+# Boundaries are ASCII-only on purpose: Korean attaches particles directly to
+# an address ("192.168.1.0/24의"), and a \w boundary read that as a mismatch.
+# The trailing dot of a sentence is allowed; a dot that starts another label
+# is not, so "1.1.168.192.in-addr.arpa" is never matched in part.
+IPV4 = re.compile(r'(?<![0-9A-Za-z.])\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2})?'
+                  r'(?![0-9A-Za-z]|\.[0-9A-Za-z])')
 RRTYPE = frozenset('''
     SOA CNAME AAAA CAA DNSKEY RRSIG NSEC NSEC3 TLSA SSHFP NAPTR HINFO SPF DKIM DMARC
     TSIG DNSSEC SVCB ZONEMD EUI48 EUI64 IPSECKEY OPENPGPKEY SMIMEA CSYNC DHCID
@@ -87,6 +97,24 @@ def _placeholders(text):
 
 def _signature(text):
     return {t for t in SIGNIFICANT.findall(text) if t not in STOPWORDS}
+
+
+def _mixes_scripts(word):
+    """True when one word draws letters from Latin and from Greek or Cyrillic.
+
+    The import spliced words together mid-token, leaving forms such as Greek
+    "WARNINGΟΠΟΙΗΣΗ" and Bulgarian "ДНКME" that read as words but are neither.
+    """
+    found = set()
+    for ch in word:
+        try:
+            name = unicodedata.name(ch)
+        except ValueError:
+            continue
+        for script in ('LATIN', 'GREEK', 'CYRILLIC'):
+            if name.startswith(script):
+                found.add(script)
+    return 'LATIN' in found and bool(found & {'GREEK', 'CYRILLIC'})
 
 
 def check_entry(entry, locale):
@@ -108,6 +136,14 @@ def check_entry(entry, locale):
         hits.append('trailing')
     if BOILERPLATE.search(dst) and not BOILERPLATE.search(src):
         hits.append('boilerplate')
+
+    if any(_mixes_scripts(w) for w in WORD.findall(dst)):
+        hits.append('mixedscript')
+    src_ips, dst_ips = set(IPV4.findall(src)), set(IPV4.findall(dst))
+    # Only when the translation carries addresses of its own: a translation
+    # that drops the example entirely is a different defect.
+    if src_ips and dst_ips and src_ips != dst_ips:
+        hits.append('ipliteral')
 
     words = dst.split()
     if len(words) >= 6:
