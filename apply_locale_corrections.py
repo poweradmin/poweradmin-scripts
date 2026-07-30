@@ -34,14 +34,29 @@ def _subs_da():
         # Remove stray space after hyphen in compound words (Argos bug)
         (r"\bzone- ", "zone-"),
         (r"\bZone- ", "Zone-"),
-        # "record" noun - normalize to "post" (Danish DNS docs use both, "post" is clearer)
-        (r"\bOpgørelsen blev\b", "Posten blev"),
-        (r"\bOpgørelser\b", "Poster"),
-        (r"\bopgørelser\b", "poster"),
-        # "Optag" in record context (means recording button) -> "Post"
-        (r"\bOptag oprettet\b", "Post oprettet"),
-        (r"\bOptag opdateret\b", "Post opdateret"),
-        (r"\bOptag slettet\b", "Post slettet"),
+        # "record" noun - the file settled on the English word, 334 entries to 47,
+        # so these Argos artifacts go straight there rather than through "post".
+        (r"\bOpgørelsen blev\b", "Recorden blev"),
+        (r"\bOpgørelser\b", "Records"),
+        (r"\bopgørelser\b", "records"),
+        # "Optag" in record context (means recording button)
+        (r"\bOptag oprettet\b", "Record oprettet"),
+        (r"\bOptag opdateret\b", "Record opdateret"),
+        (r"\bOptag slettet\b", "Record slettet"),
+        # The remaining "post" spellings, only where the source really is about a
+        # record. Danish "post" is also mail, and postkasse/Postfix/postsystemer
+        # must survive - whole-word anchoring is what keeps them out of reach.
+        ((r"\brecords?\b", None), r"\bposter\b", "records"),
+        ((r"\brecords?\b", None), r"\bPoster\b", "Records"),
+        ((r"\brecords?\b", None), r"\bposten\b", "recorden"),
+        ((r"\brecords?\b", None), r"\bPosten\b", "Recorden"),
+        ((r"\brecords?\b", None), r"\bposttyper\b", "recordtyper"),
+        ((r"\brecords?\b", None), r"\bposttype\b", "recordtype"),
+        ((r"\brecords?\b", None), r"\bpostnavnet\b", "recordnavnet"),
+        ((r"\brecords?\b", None), r"\bPostnavnet\b", "Recordnavnet"),
+        ((r"\brecords?\b", None), r"\bpostnavn\b", "recordnavn"),
+        ((r"\brecords?\b", None), r"\bpost\b", "record"),
+        ((r"\brecords?\b", None), r"\bPost\b", "Record"),
         # "skuespiller" (actor as in performer) -> "udfører" (the one performing the action)
         (r"\bskuespilleren\b", "udføreren"),
         (r"\bSkuespilleren\b", "Udføreren"),
@@ -221,6 +236,16 @@ def _subs_id():
         # when the English source is about a record.
         ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bCatatan\b", "Rekaman"),
         ((r"\brecords?\b", r"\b(note|log|comment)\b"), r"\bcatatan\b", "rekaman"),
+    ]
+
+
+def _subs_sr():
+    """Serbian: keep API in Latin like every other acronym in this file."""
+    return [
+        # The file is Cyrillic throughout but leaves DNSSEC, PowerDNS and URL in
+        # Latin, and already writes API that way in 28 entries against 59. The
+        # acronym also has to match the api.* config keys users search for.
+        (r"\bАПИ\b", "API"),
     ]
 
 
@@ -445,6 +470,7 @@ SUBS_BY_LOCALE = {
     "fa_IR": _subs_fa(),
     "he_IL": _subs_he(),
     "bs_BA": _subs_bs(),
+    "sr_RS": _subs_sr(),
 }
 
 
@@ -507,19 +533,69 @@ def apply_corrections(po_path: str, subs):
     return changes
 
 
+# Config keys, table names and file names. These are code: a translated or
+# de-underscored copy sends the user looking for something that does not exist.
+_IDENTIFIER = re.compile(
+    r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+){1,}\b"
+    r"|\b(?:dns|api|misc|db|ldap|mail|pdns)\.[a-z_.]+\b"
+    r"|\b[\w-]+\.(?:php|html|twig|js|css|sql|dat|json|ya?ml|conf|ini)\b"
+)
+
+
+def _mangled_pattern(token):
+    """Match the token with its separators padded, spaced or turned into spaces."""
+    return re.escape(token).replace(r"_", r"[\s_]*").replace(r"\.", r"\s*\.\s*")
+
+
+def restore_identifiers(po_path: str):
+    """Rewrite identifiers whose separators were mangled back to the literal form.
+
+    Only touches entries where the token survives intact apart from its separators.
+    Where the translator replaced or truncated the token there is nothing to key
+    off, so those are left for a human rather than guessed at.
+    """
+    entries = poutil.parse(po_path)
+
+    changes = 0
+    for entry in entries:
+        if entry.obsolete or entry.is_header or not entry.msgid or not entry.msgstr:
+            continue
+        if entry.msgstr.strip() == entry.msgid.strip():
+            continue
+
+        text = entry.msgstr
+        for token in sorted(set(_IDENTIFIER.findall(entry.msgid)), key=len, reverse=True):
+            if token in text:
+                continue
+            text = re.sub(_mangled_pattern(token), token, text, flags=re.IGNORECASE)
+
+        if text != entry.msgstr:
+            entry.msgstr = text
+            changes += 1
+
+    if changes:
+        poutil.write(po_path, entries)
+    print(f"Restored identifiers in {changes} entries in {po_path}")
+    return changes
+
+
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <locale>", file=sys.stderr)
+        print(f"Usage: {sys.argv[0]} <locale> [--identifiers]", file=sys.stderr)
         sys.exit(1)
     locale = sys.argv[1]
-    if locale not in SUBS_BY_LOCALE:
+    identifiers_only = "--identifiers" in sys.argv[2:]
+    if not identifiers_only and locale not in SUBS_BY_LOCALE:
         print(f"Unknown locale: {locale}", file=sys.stderr)
         sys.exit(1)
     po_path = os.path.join(ROOT, f"locale/{locale}/LC_MESSAGES/messages.po")
     if not os.path.exists(po_path):
         print(f"Not found: {po_path}", file=sys.stderr)
         sys.exit(1)
-    apply_corrections(po_path, SUBS_BY_LOCALE[locale])
+    if identifiers_only:
+        restore_identifiers(po_path)
+    else:
+        apply_corrections(po_path, SUBS_BY_LOCALE[locale])
 
 
 if __name__ == "__main__":
