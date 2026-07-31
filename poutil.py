@@ -94,9 +94,20 @@ class Entry:
 
     def clear_fuzzy(self):
         """Drop the fuzzy flag. Returns True when the entry actually had it."""
-        if 'fuzzy' not in self.flags:
+        return self.remove_flags('fuzzy')
+
+    def remove_flags(self, *names):
+        """Drop flags and mark the flag line for rewrite.
+
+        Assigning to `flags` directly is not enough: render() only rewrites the
+        comment block when `_flags_dirty` is set, so a stale `#, fuzzy` or
+        `#, auto-english-fallback` would survive into the written file.
+        Returns True when the entry actually carried one of them.
+        """
+        keep = [f for f in self.flags if f not in names]
+        if keep == self.flags:
             return False
-        self.flags = [f for f in self.flags if f != 'fuzzy']
+        self.flags = keep
         self._dirty = True
         self._flags_dirty = True
         return True

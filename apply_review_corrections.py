@@ -186,8 +186,7 @@ def apply_msgstr(locale, path, entries, review_dir):
             if entry.msgstr == new:
                 continue
             entry.msgstr = new
-            entry.flags = [f for f in entry.flags
-                           if f not in ('auto-english-fallback', 'fuzzy')]
+            entry.remove_flags('auto-english-fallback', 'fuzzy')
             applied += 1
         return applied
 
@@ -243,8 +242,7 @@ def apply_plurals(locale, path, entries, review_dir):
     def write():
         for entry, i, form in planned:
             entry.set_plural(i, form)
-            entry.flags = [f for f in entry.flags
-                           if f not in ('auto-english-fallback', 'fuzzy')]
+            entry.remove_flags('auto-english-fallback', 'fuzzy')
         return len(planned)
 
     return fixes, write
