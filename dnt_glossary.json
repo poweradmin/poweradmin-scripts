@@ -5,8 +5,8 @@
     "advisory": "Terms that are usually but not always do-not-translate, or that are ordinary English words in some contexts. Reviewer guidance only, never machine-enforced.",
     "matching": {
       "boundary_left": "(?<![A-Za-z0-9_\\\\/-])",
-      "boundary_right": "(?![A-Za-z0-9_\\\\/-])",
-      "rule": "'/', '\\', '.' and '-' are part of a literal, not word boundaries, so a \\b-anchored rule cannot rewrite half of templates/emails/custom/. A leading '.' is allowed so in-addr.arpa is still found inside 192.in-addr.arpa, and a trailing '.' so example.com is found in 'example.com.'.",
+      "boundary_right": "s?(?![A-Za-z0-9_\\\\/-])",
+      "rule": "'/', '\\', '.' and '-' are part of a literal, not word boundaries, so a \\b-anchored rule cannot rewrite half of templates/emails/custom/. A leading '.' is allowed so in-addr.arpa is still found inside 192.in-addr.arpa, and a trailing '.' so example.com is found in 'example.com.'. The optional trailing 's' folds the English plural into the match, so a msgid saying Supermasters is checked against the supermaster literal.",
       "case": "A term containing an uppercase letter is matched case-sensitively on the msgid side, so the KEY record type does not fire on the ordinary word \"key\". All-lowercase terms are matched case-insensitively. Presence in the translation is always checked case-insensitively, because a casing change is not the defect class this catches.",
       "except_locales": "A literal carrying this key is not enforced for the locales it names, which have an established native form. The value is the reason. Absent from almost every entry."
     },

@@ -25,8 +25,11 @@ OUT = os.path.join(ROOT, 'scripts', 'dnt_glossary.json')
 # A leading '.' is allowed so `in-addr.arpa` is still seen inside
 # `192.in-addr.arpa`, and a trailing '.' so `example.com` is seen in
 # `example.com.`.
+# The optional trailing 's' makes the English plural part of the match. Without
+# it a msgid saying "Supermasters" never matched the `supermaster` literal, so 85
+# translated plurals across 21 catalogues passed a scan that reported zero.
 BOUND_L = r'(?<![A-Za-z0-9_\\/-])'
-BOUND_R = r'(?![A-Za-z0-9_\\/-])'
+BOUND_R = r's?(?![A-Za-z0-9_\\/-])'
 
 
 def matcher(term):
@@ -475,7 +478,9 @@ def main():
                          "\\b-anchored rule cannot rewrite half of templates/emails/custom/. A "
                          "leading '.' is allowed so in-addr.arpa is still found inside "
                          "192.in-addr.arpa, and a trailing '.' so example.com is found in "
-                         "'example.com.'."),
+                         "'example.com.'. The optional trailing 's' folds the English plural into "
+                         "the match, so a msgid saying Supermasters is checked against the "
+                         "supermaster literal."),
                 'case': ('A term containing an uppercase letter is matched case-sensitively on the '
                          'msgid side, so the KEY record type does not fire on the ordinary word '
                          '"key". All-lowercase terms are matched case-insensitively. Presence in '
