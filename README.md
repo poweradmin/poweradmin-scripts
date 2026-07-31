@@ -34,6 +34,23 @@ must sit on a single line to be picked up.
 
 Merging fills any empty `msgstr` with the English source and flags it `#, auto-english-fallback`.
 
+### Adding new strings to every locale
+
+New source strings reach the catalogues through the merge, not by hand:
+
+```
+python3 scripts/merge_messages.py       # regenerates the .pot, then merges into all 43
+python3 scripts/compile_messages.py
+composer locale:verify
+```
+
+Every new entry lands holding the English source with a `#, auto-english-fallback` flag. **That flag is
+the handle**: it names exactly which entries are new and untranslated in a given locale, which is what
+`extract_untranslated.py` selects on. Translate them per locale with the round trip below.
+
+For a handful of strings, edit the `.po` files directly instead. A full merge rewrites all 43 catalogues
+and leaves a timestamped backup beside each one, which is a lot of churn for three entries.
+
 ### Translating an existing locale
 
 ```
@@ -43,8 +60,21 @@ python3 scripts/import_translations.py <locale>_untranslated.json
 python3 scripts/compile_messages.py
 ```
 
-`import_translations.py` also takes `<locale> --dict=<file.json>` for a flat `{msgid: translation}` map. Both forms
-only fill entries whose `msgstr` is **empty**; an entry already holding an English fallback is left alone.
+`import_translations.py` also takes `<locale> --dict=<file.json>` for a flat `{msgid: translation}` map.
+A **plural** msgid takes a `{"0": form, "1": form, ...}` map with one key per form the locale declares;
+a bare string there is an error rather than a skipped entry. Both forms only fill entries that still need
+translating unless you pass `--force`.
+
+### Applying reviewed corrections
+
+```
+python3 scripts/apply_review_corrections.py <locale> [--plurals] [--dir=DIR]
+```
+
+Reads `DIR/OUT_<locale>_*.json` and applies them behind a gate: identical placeholders, HTML tags,
+`[TOKEN]`s, whitespace, identifiers, IP literals and do-not-translate literals. One failure aborts the
+whole locale, so a bad correction can never land half-applied. Reviewers must emit JSON rather than edit
+`.po` files - parallel writes to one catalogue lose updates.
 
 ### Adding a new locale by machine translation
 
@@ -70,8 +100,21 @@ register it in `SUBS_BY_LOCALE` to cover a new locale.
 | `check_translations.py` | empty and untranslated entries; exits 1 on findings |
 | `check_locale_unicode.py` | mojibake, hidden Unicode, MT artifacts; `--fix` repairs in place |
 | `check_translation_stats.py` | per-locale coverage, separating real translations from English fallbacks (also `composer locale:stats`) |
+| `check_translation_integrity.py` | the damage classes - HARD ones exit 1, SOFT ones report only |
 
-The parent repo gates on these via `composer locale:check`.
+`composer locale:verify` in the parent repo runs the integrity and unicode checks plus msgfmt validation
+and a .po/.mo drift check. **It cannot run in CI**: this repo is gitignored by the parent, so a CI checkout
+has no `scripts/` directory and is limited to what gettext alone provides. Run it locally before pushing.
+
+### Plural forms
+
+`plural_forms.json` is the only table of gettext plural rules; `merge_messages.py` and
+`translate_new_locale.py` read it and fail loudly on an unknown ISO code rather than defaulting to two
+forms, which is wrong for every 3-, 4-, 5- and 6-form language.
+
+Read a catalogue's rule with `poutil.header_plural_rule()`, never a regex over the raw file - 12 catalogues
+wrap the header across several quoted lines. Compare two rules with `poutil.same_plural_rule()`, which
+evaluates both over n=0..200; ru_RU and uk_UA ship different spellings of the identical Russian rule.
 
 ### cleanup_obsolete_translations.py
 
