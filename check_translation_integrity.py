@@ -43,8 +43,13 @@ SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire')
 # ratio that finds dropped clauses elsewhere flags healthy text here.
 CJK = {'zh_CN', 'zh_TW', 'ja_JP', 'ko_KR'}
 
-PRINTF = re.compile(r'%(?:\d+\$)?[sdfucxXob]|%%')
-LEAK = re.compile(r'%(?:\d+\$)?[sdfucxXob][A-Za-z]')
+# Flags, width and precision are part of the spec: "0x%04X" broken into "0x% 4X"
+# is a real defect that a bare "%[sdfucxXob]" pattern reads as no placeholder at all.
+# The space flag is deliberately excluded - it is legal C but unused here, and it
+# makes the literal "100% uptime" parse as a placeholder.
+SPEC = r'[-+#0]*\d*(?:\.\d+)?[sdfucxXobeEgG]'
+PRINTF = re.compile(rf'%(?:\d+\$)?{SPEC}|%%')
+LEAK = re.compile(rf'%(?:\d+\$)?{SPEC}[A-Za-z]')
 # Real markup only. Angle brackets are also used for metavariables such as
 # <priority> or <hash>._openpgpkey.<domain>, which translators legitimately
 # render in the target language - matching those would be almost all noise.
