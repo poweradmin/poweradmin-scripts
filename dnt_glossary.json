@@ -1,0 +1,1826 @@
+{
+  "_meta": {
+    "purpose": "Do-not-translate glossary for the Poweradmin gettext catalogues.",
+    "literal": "Tokens that must appear byte-identical in the msgstr whenever they appear in the msgid. Safe to enforce mechanically.",
+    "advisory": "Terms that are usually but not always do-not-translate, or that are ordinary English words in some contexts. Reviewer guidance only, never machine-enforced.",
+    "matching": {
+      "boundary_left": "(?<![A-Za-z0-9_\\\\/-])",
+      "boundary_right": "(?![A-Za-z0-9_\\\\/-])",
+      "rule": "'/', '\\', '.' and '-' are part of a literal, not word boundaries, so a \\b-anchored rule cannot rewrite half of templates/emails/custom/. A leading '.' is allowed so in-addr.arpa is still found inside 192.in-addr.arpa, and a trailing '.' so example.com is found in 'example.com.'.",
+      "case": "A term containing an uppercase letter is matched case-sensitively on the msgid side, so the KEY record type does not fire on the ordinary word \"key\". All-lowercase terms are matched case-insensitively. Presence in the translation is always checked case-insensitively, because a casing change is not the defect class this catches."
+    },
+    "regenerate": "python3 scripts/build_dnt_glossary.py. Record types come from the public const list in lib/Domain/Model/RecordType.php; config identifiers from the flattened keys of config/settings.defaults.php (bare single-word keys such as host/name/type/port are excluded as ordinary English words). Every literal is validated to appear in at least one msgid in locale/en_EN/LC_MESSAGES/messages.po or locale/i18n-template-php.pot."
+  },
+  "literal": [
+    {
+      "term": "AFI",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "AFS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ALPN",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "API",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "AXFR",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "BADKEY",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "BADSIG",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "TSIG error name"
+    },
+    {
+      "term": "BADTIME",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "BADTRUNC",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CIDR",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CSRF",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CSV",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CSV/JSON",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DANE",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DCE",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DKIM",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DMARC",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DNS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DNS-over-TLS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DNSSEC",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DTLS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "EMAILBX",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "MINFO field"
+    },
+    {
+      "term": "ENUM",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "E.164 number mapping, not the word \"enum\""
+    },
+    {
+      "term": "FQDN",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "FTP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "GET",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "HTTP method"
+    },
+    {
+      "term": "HTTP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "HTTP/HTTPS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IACPKIX",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IANA",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IDN",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IETF",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ILNP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IPGP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IPKIX",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "CERT type mnemonic"
+    },
+    {
+      "term": "ISPKI",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "KSK",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "LDAP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "LDAPS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "MFA",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "NOTIFY",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "DNS opcode"
+    },
+    {
+      "term": "OIDC",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "OUI",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PGP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PKI",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PKIX",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "POST",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "HTTP method"
+    },
+    {
+      "term": "QR",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RCODE",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RDAP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "REST",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RFC",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RMAILBX",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "MINFO field"
+    },
+    {
+      "term": "RNAME",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "SOA field"
+    },
+    {
+      "term": "S/MIME",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SAML",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SEP",
+      "group": "acronym",
+      "source": "review-sweep",
+      "note": "DNSKEY flag name"
+    },
+    {
+      "term": "SFTP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SMTP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SPKI",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SQL",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SSH",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SSL/TLS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "TCP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "TCP/UDP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "TLS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "TTL",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "UDP",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "UNIX",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "WHOIS",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ZSK",
+      "group": "acronym",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DH",
+      "group": "algorithm",
+      "source": "review-sweep",
+      "note": "Diffie-Hellman mnemonic in DNSKEY algorithm lists"
+    },
+    {
+      "term": "DSA",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DSA/SHA1",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ECDSA",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Ed25519",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ED25519",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ED448",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSA",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSA/MD5",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSA/SHA-1",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSA/SHA-256",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSASHA1",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSASHA1-NSEC3-SHA1",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSASHA256",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RSASHA512",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SHA-1",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SHA-256",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SHA256",
+      "group": "algorithm",
+      "source": "review-sweep"
+    },
+    {
+      "term": "--print-dane-records",
+      "group": "command",
+      "source": "review-sweep",
+      "note": "GnuPG flag"
+    },
+    {
+      "term": "-noout",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "-outform",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "-pubin",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "-pubkey",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "-sha256",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "openssl",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ssh-keygen -r hostname",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "VerifyHostKeyDNS yes",
+      "group": "command",
+      "source": "review-sweep",
+      "note": "ssh_config directive and value"
+    },
+    {
+      "term": "x509",
+      "group": "command",
+      "source": "review-sweep"
+    },
+    {
+      "term": "accounturi",
+      "group": "config",
+      "source": "review-sweep"
+    },
+    {
+      "term": "application_url",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "contactemail",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "SVCB/HTTPS and ACME parameter name"
+    },
+    {
+      "term": "contactphone",
+      "group": "config",
+      "source": "review-sweep"
+    },
+    {
+      "term": "default_zone_template",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "dns.default_zone_template",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "groups_only",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "zone_ownership_mode value"
+    },
+    {
+      "term": "interface.application_url",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "max_input_vars",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "PHP ini setting, not in settings.defaults.php"
+    },
+    {
+      "term": "pdns_api",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "pdns_api.key",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "pdns_api.server_name",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "record_type_defaults",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "Poweradmin table name"
+    },
+    {
+      "term": "server_name",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "setSOAParams()",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "function name"
+    },
+    {
+      "term": "soaminimum",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "CSYNC flag name"
+    },
+    {
+      "term": "users_only",
+      "group": "config",
+      "source": "review-sweep",
+      "note": "zone_ownership_mode value"
+    },
+    {
+      "term": "zone_ownership_mode",
+      "group": "config",
+      "source": "config/settings.defaults.php"
+    },
+    {
+      "term": "_dmarc",
+      "group": "dns-suffix",
+      "source": "review-sweep",
+      "note": "DMARC owner-name label"
+    },
+    {
+      "term": "_smimecert",
+      "group": "dns-suffix",
+      "source": "review-sweep",
+      "note": "SMIMEA owner-name label"
+    },
+    {
+      "term": "e164.arpa",
+      "group": "dns-suffix",
+      "source": "review-sweep"
+    },
+    {
+      "term": "in-addr.arpa",
+      "group": "dns-suffix",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ip6.arpa",
+      "group": "dns-suffix",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ASCII",
+      "group": "encoding",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Base32hex",
+      "group": "encoding",
+      "source": "review-sweep"
+    },
+    {
+      "term": "base64",
+      "group": "encoding",
+      "source": "review-sweep",
+      "note": "MT produced \"βάσης64\", \"βάση 64\", \"bazë 64\""
+    },
+    {
+      "term": "DER",
+      "group": "encoding",
+      "source": "review-sweep"
+    },
+    {
+      "term": "NUL",
+      "group": "encoding",
+      "source": "review-sweep",
+      "note": "the ASCII control character name"
+    },
+    {
+      "term": "PEM",
+      "group": "encoding",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Punycode",
+      "group": "encoding",
+      "source": "review-sweep"
+    },
+    {
+      "term": "00-00-5E",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "IANA OUI example"
+    },
+    {
+      "term": "2001:db8",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "RFC 3849 documentation prefix"
+    },
+    {
+      "term": "a.b.c.d",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "placeholder IPv4 shape"
+    },
+    {
+      "term": "bc1q",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "WALLET example address prefix"
+    },
+    {
+      "term": "dlv.isc.org",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "decommissioned DLV registry, a real name"
+    },
+    {
+      "term": "domain.tld",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "placeholder domain in format examples"
+    },
+    {
+      "term": "example.com",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "RFC 2606 reserved example domain; MT produced \"παράδειγμα.com\""
+    },
+    {
+      "term": "example.net",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "google.com",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "hostmaster.example.net",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "isc.org",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "localhost",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "MT produced \"τοπικό host\""
+    },
+    {
+      "term": "mail.example.com",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "mail.protection.outlook.com",
+      "group": "example-names",
+      "source": "review-sweep",
+      "note": "Microsoft 365 MX host"
+    },
+    {
+      "term": "outlook.com",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "spf.protection.outlook.com",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "www.example.com",
+      "group": "example-names",
+      "source": "review-sweep"
+    },
+    {
+      "term": "name,SRV,\"weight port target\",priority,ttl",
+      "group": "field-list",
+      "source": "review-sweep"
+    },
+    {
+      "term": "name,SRV,target,weight,port,ttl",
+      "group": "field-list",
+      "source": "review-sweep"
+    },
+    {
+      "term": "name,type,content",
+      "group": "field-list",
+      "source": "review-sweep"
+    },
+    {
+      "term": "name,type,content,priority,ttl,comment",
+      "group": "field-list",
+      "source": "review-sweep",
+      "note": "bulk-import column order"
+    },
+    {
+      "term": "primary-ns hostmaster serial refresh retry expire minimum",
+      "group": "field-list",
+      "source": "review-sweep",
+      "note": "SOA field order shown as a literal format string"
+    },
+    {
+      "term": "algorithm-name",
+      "group": "field-name",
+      "source": "review-sweep",
+      "note": "TSIG/TKEY wire field"
+    },
+    {
+      "term": "certificate-data",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "digest-type",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "expiration-time",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "fudge",
+      "group": "field-name",
+      "source": "review-sweep",
+      "note": "TSIG field name, not an English word here"
+    },
+    {
+      "term": "hash-algorithm",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "inception-time",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "key-data",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "key-tag",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "matching-type",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "original-id",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "other-len",
+      "group": "field-name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "content:spf",
+      "group": "filter-syntax",
+      "source": "review-sweep"
+    },
+    {
+      "term": "key=value",
+      "group": "filter-syntax",
+      "source": "review-sweep"
+    },
+    {
+      "term": "type:txt",
+      "group": "filter-syntax",
+      "source": "review-sweep"
+    },
+    {
+      "term": "zone..variant",
+      "group": "filter-syntax",
+      "source": "review-sweep",
+      "note": "view/variant naming syntax"
+    },
+    {
+      "term": "%account%",
+      "group": "format-token",
+      "source": "review-sweep"
+    },
+    {
+      "term": "%date%",
+      "group": "format-token",
+      "source": "review-sweep"
+    },
+    {
+      "term": "%serial%",
+      "group": "format-token",
+      "source": "review-sweep",
+      "note": "template substitution token, not a printf placeholder"
+    },
+    {
+      "term": "xx-xx-xx-xx-xx-xx",
+      "group": "format-token",
+      "source": "review-sweep",
+      "note": "EUI48 shape"
+    },
+    {
+      "term": "xx-xx-xx-xx-xx-xx-xx-xx",
+      "group": "format-token",
+      "source": "review-sweep",
+      "note": "EUI64 shape"
+    },
+    {
+      "term": "xxxx:xxxx:xxxx:xxxx",
+      "group": "format-token",
+      "source": "review-sweep",
+      "note": "NID shape"
+    },
+    {
+      "term": "YYYYMMDDHHmmSS",
+      "group": "format-token",
+      "source": "review-sweep",
+      "note": "RRSIG timestamp shape"
+    },
+    {
+      "term": "cert.pem",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "config/settings.php",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "install/",
+      "group": "path",
+      "source": "review-sweep",
+      "note": "MT produced \"εγκατάσταση/\", pointing at a directory that does not exist"
+    },
+    {
+      "term": "nginx.conf",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "nginx.conf.example",
+      "group": "path",
+      "source": "review-sweep",
+      "note": "MT produced \"nginx.conf.παράδειγμα\""
+    },
+    {
+      "term": "pdns.conf",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "settings.php",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "templates/emails/custom/",
+      "group": "path",
+      "source": "review-sweep"
+    },
+    {
+      "term": "autoprimary",
+      "group": "pdns-term",
+      "source": "review-sweep",
+      "note": "PowerDNS feature name, lowercase in the UI"
+    },
+    {
+      "term": "supermaster",
+      "group": "pdns-term",
+      "source": "review-sweep",
+      "note": "PowerDNS feature name, lowercase in the UI"
+    },
+    {
+      "term": "BIND",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Exim",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "GnuPG",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "MySQL",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "OpenSSH",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PDNS",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PHP",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Postfix",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PostgreSQL",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "Poweradmin",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PowerDNS",
+      "group": "product",
+      "source": "review-sweep",
+      "note": "MT produced \"energji\"/\"Ισχύς DNS\""
+    },
+    {
+      "term": "SQLite",
+      "group": "product",
+      "source": "review-sweep"
+    },
+    {
+      "term": "$ORIGIN",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "BIND zone-file directive"
+    },
+    {
+      "term": "$TTL",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "BIND zone-file directive"
+    },
+    {
+      "term": "adkim",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "afrf",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "DMARC report format"
+    },
+    {
+      "term": "aspf",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DANE-EE",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DMARC1",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "E2U",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "ENUM service field"
+    },
+    {
+      "term": "include/a/mx",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "SPF mechanism list shown as a literal"
+    },
+    {
+      "term": "iodef",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "CAA tag"
+    },
+    {
+      "term": "issuewild",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "CAA tag"
+    },
+    {
+      "term": "NATIVE",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "PowerDNS zone kind"
+    },
+    {
+      "term": "no-default-alpn",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "SVCB/HTTPS parameter"
+    },
+    {
+      "term": "p=none",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "DMARC policy tag shown verbatim"
+    },
+    {
+      "term": "PKIX-EE",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "rua",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ruf",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SIG(0)",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "t=y",
+      "group": "protocol-value",
+      "source": "review-sweep",
+      "note": "DKIM testing-mode tag"
+    },
+    {
+      "term": "v=DMARC1",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "v=spf1",
+      "group": "protocol-value",
+      "source": "review-sweep"
+    },
+    {
+      "term": "AAAA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "AFSDB",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "ALIAS",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "APL",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "BRID",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CAA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CDNSKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CDS",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CERT",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CNAME",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "CSYNC",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "DHCID",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "DLV",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "DNAME",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "DNSKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "DS",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "EUI48",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "EUI64",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "HHIT",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "HINFO",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "HTTPS",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "IPSECKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "KX",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "L32",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "L64",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "LOC",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "LP",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "LUA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "MINFO",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "MR",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "MX",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NAPTR",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NID",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NS",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NSEC",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NSEC3",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "NSEC3PARAM",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "OPENPGPKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "PTR",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "RESINFO",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "RKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "RP",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "RRSIG",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SMIMEA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SOA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SPF",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SRV",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SSHFP",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "SVCB",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "TKEY",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "TLSA",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "TSIG",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "TXT",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "URI",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "WALLET",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "ZONEMD",
+      "group": "record-type",
+      "source": "lib/Domain/Model/RecordType.php"
+    }
+  ],
+  "advisory": [
+    {
+      "term": "BEGIN",
+      "group": "acronym",
+      "note": "PEM marker, but written as an ordinary word in \"BEGIN/END markers\"",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CA",
+      "group": "acronym",
+      "note": "certificate authority; some locales expand it",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CPU",
+      "group": "acronym",
+      "note": "HINFO field name; some locales translate it",
+      "source": "review-sweep"
+    },
+    {
+      "term": "DB",
+      "group": "acronym",
+      "note": "shorthand for database in settings labels",
+      "source": "review-sweep"
+    },
+    {
+      "term": "END",
+      "group": "acronym",
+      "note": "PEM marker, but written as an ordinary word in \"BEGIN/END markers\"",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ID",
+      "group": "acronym",
+      "note": "widely localized (\"Kimlik\", \"Ausweis\"); keep Latin where the surrounding locale does",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IP",
+      "group": "acronym",
+      "note": "usually kept, but legitimately expanded in some scripts",
+      "source": "review-sweep"
+    },
+    {
+      "term": "MAC",
+      "group": "acronym",
+      "note": "hardware address, and the TSIG field of the same name",
+      "source": "review-sweep"
+    },
+    {
+      "term": "OS",
+      "group": "acronym",
+      "note": "HINFO field name and an ordinary two-letter string",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RR",
+      "group": "acronym",
+      "note": "resource record; some locales expand it",
+      "source": "review-sweep"
+    },
+    {
+      "term": "TLD",
+      "group": "acronym",
+      "note": "appears both as the bracket token [TLD] and as prose",
+      "source": "review-sweep"
+    },
+    {
+      "term": "UI",
+      "group": "acronym",
+      "note": "often translated as part of a longer phrase",
+      "source": "review-sweep"
+    },
+    {
+      "term": "URL",
+      "group": "acronym",
+      "note": "usually kept, but legitimately expanded in some scripts",
+      "source": "review-sweep"
+    },
+    {
+      "term": "issue",
+      "group": "caa-tag",
+      "note": "CAA tag and an ordinary noun/verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "immediate",
+      "group": "csync-flag",
+      "note": "CSYNC flag name quoted in the message, and an ordinary adjective",
+      "source": "review-sweep"
+    },
+    {
+      "term": "fo",
+      "group": "dmarc-value",
+      "note": "DMARC tag; too short to match safely",
+      "source": "review-sweep"
+    },
+    {
+      "term": "none",
+      "group": "dmarc-value",
+      "note": "DMARC policy value and an ordinary word; the literal \"p=none\" is enforced instead",
+      "source": "review-sweep"
+    },
+    {
+      "term": "pct",
+      "group": "dmarc-value",
+      "note": "DMARC tag; appears in prose about percentages",
+      "source": "review-sweep"
+    },
+    {
+      "term": "quarantine",
+      "group": "dmarc-value",
+      "note": "DMARC policy value and an ordinary word",
+      "source": "review-sweep"
+    },
+    {
+      "term": "reject",
+      "group": "dmarc-value",
+      "note": "DMARC policy value and an ordinary verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "rf",
+      "group": "dmarc-value",
+      "note": "DMARC tag; too short to match safely",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ri",
+      "group": "dmarc-value",
+      "note": "DMARC tag; too short to match safely",
+      "source": "review-sweep"
+    },
+    {
+      "term": "sp",
+      "group": "dmarc-value",
+      "note": "DMARC tag; too short to match safely",
+      "source": "review-sweep"
+    },
+    {
+      "term": "bogus",
+      "group": "dnssec-value",
+      "note": "DNSSEC validation state and an ordinary adjective",
+      "source": "review-sweep"
+    },
+    {
+      "term": "insecure",
+      "group": "dnssec-value",
+      "note": "DNSSEC validation state and an ordinary adjective",
+      "source": "review-sweep"
+    },
+    {
+      "term": "secure",
+      "group": "dnssec-value",
+      "note": "DNSSEC validation state and an ordinary adjective, including inside \"insecure\"",
+      "source": "review-sweep"
+    },
+    {
+      "term": "CRITICAL",
+      "group": "emphasis",
+      "note": "caps prefix; translate but keep the caps",
+      "source": "review-sweep"
+    },
+    {
+      "term": "IMPORTANT",
+      "group": "emphasis",
+      "note": "caps prefix; translate but keep the caps",
+      "source": "review-sweep"
+    },
+    {
+      "term": "MUST",
+      "group": "emphasis",
+      "note": "RFC 2119 emphasis; translating it in caps is correct",
+      "source": "review-sweep"
+    },
+    {
+      "term": "NOT",
+      "group": "emphasis",
+      "note": "RFC 2119 emphasis; translating it in caps is correct",
+      "source": "review-sweep"
+    },
+    {
+      "term": "NOTE",
+      "group": "emphasis",
+      "note": "caps prefix; translate but keep the caps",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PRIVATE",
+      "group": "emphasis",
+      "note": "caps emphasis in the DKIM key messages",
+      "source": "review-sweep"
+    },
+    {
+      "term": "PUBLIC",
+      "group": "emphasis",
+      "note": "caps emphasis in the DKIM key messages",
+      "source": "review-sweep"
+    },
+    {
+      "term": "RECOMMENDED",
+      "group": "emphasis",
+      "note": "RFC 2119 emphasis",
+      "source": "review-sweep"
+    },
+    {
+      "term": "REQUIRE",
+      "group": "emphasis",
+      "note": "caps emphasis",
+      "source": "review-sweep"
+    },
+    {
+      "term": "SHOULD",
+      "group": "emphasis",
+      "note": "RFC 2119 emphasis",
+      "source": "review-sweep"
+    },
+    {
+      "term": "WARNING",
+      "group": "emphasis",
+      "note": "caps prefix; translate but keep the caps",
+      "source": "review-sweep"
+    },
+    {
+      "term": "digest",
+      "group": "field-name",
+      "note": "DS/ZONEMD field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "error",
+      "group": "field-name",
+      "note": "TSIG/TKEY field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "mac",
+      "group": "field-name",
+      "note": "TSIG field name, but MAC also means the hardware address in EUI48 messages",
+      "source": "review-sweep"
+    },
+    {
+      "term": "mode",
+      "group": "field-name",
+      "note": "TKEY field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "scheme",
+      "group": "field-name",
+      "note": "ZONEMD field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "serial",
+      "group": "field-name",
+      "note": "SOA field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "timestamp",
+      "group": "field-name",
+      "note": "TSIG field name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "end",
+      "group": "lua-keyword",
+      "note": "Lua keyword and an ordinary noun/verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "function",
+      "group": "lua-keyword",
+      "note": "Lua keyword inside LUA record docs and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "return",
+      "group": "lua-keyword",
+      "note": "Lua keyword and an ordinary verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "A",
+      "group": "record-type",
+      "note": "also the English article \"a\"; msgid \"A record\" and \"A zone must...\" are indistinguishable",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "KEY",
+      "group": "record-type",
+      "note": "the KEY record type, but msgids also use \"KEY\" as caps emphasis of the ordinary word (\"Only the PUBLIC KEY goes in this DNS record\")",
+      "source": "lib/Domain/Model/RecordType.php"
+    },
+    {
+      "term": "master",
+      "group": "role",
+      "note": "PowerDNS role name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "native",
+      "group": "role",
+      "note": "lowercase prose form; the uppercase zone kind NATIVE is enforced",
+      "source": "review-sweep"
+    },
+    {
+      "term": "primary",
+      "group": "role",
+      "note": "PowerDNS role name and an ordinary adjective",
+      "source": "review-sweep"
+    },
+    {
+      "term": "secondary",
+      "group": "role",
+      "note": "PowerDNS role name and an ordinary adjective",
+      "source": "review-sweep"
+    },
+    {
+      "term": "slave",
+      "group": "role",
+      "note": "PowerDNS role name and an ordinary noun",
+      "source": "review-sweep"
+    },
+    {
+      "term": "a",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism and the English article",
+      "source": "review-sweep"
+    },
+    {
+      "term": "all",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism, and the commonest English word in the catalogue",
+      "source": "review-sweep"
+    },
+    {
+      "term": "exists",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism and an ordinary verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "exp",
+      "group": "spf-mechanism",
+      "note": "SPF modifier; too short to match safely",
+      "source": "review-sweep"
+    },
+    {
+      "term": "include",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism and an ordinary verb",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ip4",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism; also written as prose",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ip6",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism; also written as prose",
+      "source": "review-sweep"
+    },
+    {
+      "term": "mx",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism; the uppercase MX record type is enforced instead",
+      "source": "review-sweep"
+    },
+    {
+      "term": "ptr",
+      "group": "spf-mechanism",
+      "note": "SPF mechanism; the uppercase PTR record type is enforced instead",
+      "source": "review-sweep"
+    },
+    {
+      "term": "redirect",
+      "group": "spf-mechanism",
+      "note": "SPF modifier and an ordinary verb",
+      "source": "review-sweep"
+    }
+  ]
+}

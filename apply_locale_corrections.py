@@ -8,6 +8,7 @@ Corrections fix systematic Argos MT mistakes (wrong word sense, broken spacing,
 inconsistent DNS terminology). The dicts here are hand-curated based on review
 of actual MT output - each entry has a reason.
 """
+import json
 import os
 import re
 import sys
@@ -474,6 +475,46 @@ SUBS_BY_LOCALE = {
 }
 
 
+PITFALLS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locale_pitfalls.json")
+
+
+def load_pitfall_subs(locale):
+    """Rules from locale_pitfalls.json in the same shape as the tables above.
+
+    The file is the mined half of this toolchain: the tables in this module are
+    hand-written, those are derived from the repair sweep. Kept separate so a
+    regenerated pitfalls file never silently rewrites a curated rule.
+    """
+    if not os.path.exists(PITFALLS):
+        return []
+    with open(PITFALLS, "r", encoding="utf-8") as fh:
+        doc = json.load(fh)
+    subs = []
+    for rule in doc.get("per_locale", {}).get(locale, {}).get("rules", []):
+        guard = rule.get("guard") or {}
+        include, exclude = guard.get("include"), guard.get("exclude")
+        if include or exclude:
+            subs.append(((include, exclude), rule["pattern"], rule["replace"]))
+        else:
+            subs.append((rule["pattern"], rule["replace"]))
+    return subs
+
+
+def report_review_only(locale):
+    """Print the substitutions that are deliberately not applied."""
+    if not os.path.exists(PITFALLS):
+        return
+    with open(PITFALLS, "r", encoding="utf-8") as fh:
+        doc = json.load(fh)
+    items = doc.get("per_locale", {}).get(locale, {}).get("review_only", [])
+    if not items:
+        return
+    print(f"\n{len(items)} known {locale} problems need a human, not a substitution:")
+    for item in items:
+        print(f"  {item['wrong']} -> {item['right']}  ({item['source_term']})")
+        print(f"      {item['why_not_mechanical']}")
+
+
 def _matches_guard(entry, guard):
     """A guard is (include_pattern, exclude_pattern); either may be None."""
     include, exclude = guard
@@ -484,7 +525,7 @@ def _matches_guard(entry, guard):
     return True
 
 
-def apply_corrections(po_path: str, subs):
+def apply_corrections(po_path: str, subs, dry_run: bool = False):
     """Apply substitutions to the msgstr of every entry.
 
     A rule is either a 2-tuple (pattern, replacement) applied unconditionally, or a
@@ -492,8 +533,11 @@ def apply_corrections(po_path: str, subs):
     against the English msgid. The guarded form exists because a single translated
     word can render two different sources - Malay "catatan" is both Record and Note -
     so a blind substitution would corrupt the entries it does not mean to touch.
+
+    With dry_run the file is left alone and every change is printed instead.
     """
     entries = poutil.parse(po_path)
+    preview = []
 
     changes = 0
     for entry in entries:
@@ -520,13 +564,23 @@ def apply_corrections(po_path: str, subs):
             for n in sorted(entry.plurals):
                 new = rewrite(entry.plurals[n])
                 if new != entry.plurals[n]:
-                    entry.set_plural(n, new)
+                    preview.append((entry.msgid, entry.plurals[n], new))
+                    if not dry_run:
+                        entry.set_plural(n, new)
                     changes += 1
         elif entry.msgstr:
             new = rewrite(entry.msgstr)
             if new != entry.msgstr:
-                entry.msgstr = new
+                preview.append((entry.msgid, entry.msgstr, new))
+                if not dry_run:
+                    entry.msgstr = new
                 changes += 1
+
+    if dry_run:
+        for msgid, old, new in preview:
+            print(f"  {msgid[:70]!r}\n    - {old}\n    + {new}")
+        print(f"Would apply {changes} substitutions to {po_path}")
+        return changes
 
     poutil.write(po_path, entries)
     print(f"Applied {changes} substitutions to {po_path}")
@@ -649,13 +703,18 @@ def restore_trailing_whitespace(po_path: str):
 
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <locale> [--identifiers|--placeholders|--trailing]",
+        print(f"Usage: {sys.argv[0]} <locale> "
+              "[--identifiers|--placeholders|--trailing|--pitfalls] [--dry-run]",
               file=sys.stderr)
         sys.exit(1)
     locale = sys.argv[1]
-    identifiers_only = "--identifiers" in sys.argv[2:]
-    placeholders_only = "--placeholders" in sys.argv[2:]
-    if not (identifiers_only or placeholders_only) and locale not in SUBS_BY_LOCALE:
+    flags = sys.argv[2:]
+    identifiers_only = "--identifiers" in flags
+    placeholders_only = "--placeholders" in flags
+    pitfalls_only = "--pitfalls" in flags
+    dry_run = "--dry-run" in flags
+    if not (identifiers_only or placeholders_only or pitfalls_only) \
+            and locale not in SUBS_BY_LOCALE:
         print(f"Unknown locale: {locale}", file=sys.stderr)
         sys.exit(1)
     po_path = os.path.join(ROOT, f"locale/{locale}/LC_MESSAGES/messages.po")
@@ -666,8 +725,15 @@ def main():
         restore_identifiers(po_path)
     elif placeholders_only:
         strip_placeholder_leaks(po_path)
+    elif pitfalls_only:
+        subs = load_pitfall_subs(locale)
+        if not subs:
+            print(f"No pitfall rules for {locale}")
+        else:
+            apply_corrections(po_path, subs, dry_run=dry_run)
+        report_review_only(locale)
     else:
-        apply_corrections(po_path, SUBS_BY_LOCALE[locale])
+        apply_corrections(po_path, SUBS_BY_LOCALE[locale], dry_run=dry_run)
 
 
 if __name__ == "__main__":

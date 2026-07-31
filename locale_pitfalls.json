@@ -1,0 +1,2932 @@
+{
+ "_meta": {
+  "purpose": "Recurring mistranslation traps for the Poweradmin gettext catalogues, mined from the machine-translation repair sweep.",
+  "scope": "Wrong-meaning classes. Literals that must never be translated live in scripts/dnt_glossary.json and are not repeated here.",
+  "mined_from": {
+   "repair_commits": "every commit touching locale/*/LC_MESSAGES/messages.po since 2026-07-15, parsed with scripts/poutil.py",
+   "pending_review": "the OUT_<locale>_NN.json corrections from the per-entry review queue",
+   "triples": 25627,
+   "locales_with_repairs": 42
+  },
+  "universal": "English source words whose wrong sense was picked in several unrelated languages, plus the structural failure classes. locale_count is what to sort by: it says which trap to check first.",
+  "per_locale": "Confirmed bad renderings for one language. Each rule is the (guard, pattern, replacement) shape that scripts/apply_locale_corrections.py applies: guard.include and guard.exclude are matched case-insensitively against the English msgid, pattern and replace against the msgstr. A rule is only listed where the same wrong rendering occurred more than once.",
+  "review_only": "Substitutions that cannot be made safe. Report these to a human; never apply them.",
+  "path_safety": "ASCII patterns are wrapped in (?<![/\\\\\\w-]) ... (?![/\\\\\\w-]) rather than \\b, because \\b treats '/' as a boundary and a \\b-anchored rule once rewrote the literal path templates/emails/custom/. Acronym rules use (?<![A-Za-z0-9]) ... (?![A-Za-z0-9]) instead, so a trailing hyphen in DNSEC-signeret still matches while AAA stays out of AAAA.",
+  "apply": "python3 scripts/apply_locale_corrections.py <locale> --pitfalls"
+ },
+ "universal": {
+  "word_sense": [
+   {
+    "term": "record",
+    "intended": "a DNS resource record - one row of zone data",
+    "locales": [
+     "ar_SA",
+     "bg_BG",
+     "da_DK",
+     "el_GR",
+     "fa_IR",
+     "he_IL",
+     "ms_MY",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 9,
+    "repairs_observed": 1415,
+    "wrong_senses": [
+     {
+      "sense": "a sports record or a music recording",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "rekord (a record-breaking feat)",
+        "repairs": 227
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "рекорд (a sporting record)",
+        "repairs": 34
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "ρεκόρ (a sporting record)",
+        "repairs": 35
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "תקליט (a vinyl record)",
+        "repairs": 57
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "สถิติ (statistics, a sporting record)",
+        "repairs": 99
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "rekaman (an audio recording, and Indonesian)",
+        "repairs": 78
+       }
+      ]
+     },
+     {
+      "sense": "a computer file",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "αρχείο (a file)",
+        "repairs": 318
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "پرونده (a file or dossier)",
+        "repairs": 64
+       },
+       {
+        "locale": "da_DK",
+        "wrong": "post (a mail item or a ledger posting)",
+        "repairs": 37
+       }
+      ]
+     },
+     {
+      "sense": "a note or a registry entry",
+      "seen_in": [
+       {
+        "locale": "ms_MY",
+        "wrong": "catatan (a note)",
+        "repairs": 257
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "سوابق (background history, prior records)",
+        "repairs": 169
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "תיעוד (documentation)",
+        "repairs": 20
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "Dokumentimi (documentation)",
+        "repairs": 10
+       },
+       {
+        "locale": "ar_SA",
+        "wrong": "المحضر (the minutes of a meeting)",
+        "repairs": 10
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "records",
+     "wrong": "αρχεία",
+     "right": "εγγραφές"
+    }
+   },
+   {
+    "term": "colon",
+    "intended": "the ':' punctuation character",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "ga_IE",
+     "he_IL",
+     "hi_IN",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 7,
+    "repairs_observed": 25,
+    "wrong_senses": [
+     {
+      "sense": "the large intestine",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "διαχωριστές του παχέος εντέρου (large-intestine separators)",
+        "repairs": 4
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "разделители на дебелото черво (large-intestine separators)",
+        "repairs": 6
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ตัวแบ่งลำไส้ใหญ่ (large-intestine separators)",
+        "repairs": 6
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "המעי הגס (the large intestine)",
+        "repairs": 1
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "të ndarë në zorrë (separated in the intestine)",
+        "repairs": 1
+       }
+      ]
+     },
+     {
+      "sense": "colonised, or a colonel",
+      "seen_in": [
+       {
+        "locale": "ga_IE",
+        "wrong": "teaglaim coilíneach-scartha (colonially separated combinations)",
+        "repairs": 4
+       },
+       {
+        "locale": "hi_IN",
+        "wrong": "उपनिवेशित संयोजन (colonised combinations)",
+        "repairs": 1
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "קולונלים (colonels)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "bg_BG",
+     "msgid": "Invalid IPv6 address: more than two consecutive colons.",
+     "wrong": "Невалиден IPv6 адрес: повече от два последователни дебелото черво.",
+     "right": "Невалиден IPv6 адрес: повече от две последователни двоеточия."
+    }
+   },
+   {
+    "term": "forward (zone)",
+    "intended": "a forward zone, the opposite of a reverse zone",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "he_IL",
+     "ms_MY",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 7,
+    "repairs_observed": 22,
+    "wrong_senses": [
+     {
+      "sense": "physically ahead, or onward",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "Ζώνες εμπρός (zones out in front)",
+        "repairs": 8
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ส่งต่อ (to forward a message on)",
+        "repairs": 2
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "напред (ahead)",
+        "repairs": 4
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "קדימה (forwards, ahead)",
+        "repairs": 4
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "përpara (in front, earlier)",
+        "repairs": 2
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "رو به جلو (facing forwards)",
+        "repairs": 1
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "maju (to advance)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "Forward Zones",
+     "wrong": "Ζώνες εμπρός",
+     "right": "Ευθείες ζώνες"
+    }
+   },
+   {
+    "term": "digest",
+    "intended": "a message digest (DS, CDS, ZONEMD)",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "ga_IE",
+     "he_IL",
+     "th_TH"
+    ],
+    "locale_count": 6,
+    "repairs_observed": 77,
+    "wrong_senses": [
+     {
+      "sense": "digestion",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "πέψης (of digestion)",
+        "repairs": 14
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "هضم (digestion)",
+        "repairs": 18
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "לעיכול (for digestion)",
+        "repairs": 18
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "храносмилането (the digestion)",
+        "repairs": 7
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "การย่อย (digesting food)",
+        "repairs": 14
+       },
+       {
+        "locale": "ga_IE",
+        "wrong": "díleá (digestion)",
+        "repairs": 1
+       }
+      ]
+     },
+     {
+      "sense": "a periodical or bulletin",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "бюлетини (bulletins)",
+        "repairs": 5
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "SHA-1 digest must be exactly 40 hexadecimal characters",
+     "wrong": "هضم SHA-1 باید دقیقاً 40 کاراکتر هگزادمال باشد",
+     "right": "چکیده SHA-1 باید دقیقا 40 کاراکتر هگزادسیمال باشد"
+    }
+   },
+   {
+    "term": "table",
+    "intended": "a database table",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "he_IL",
+     "ms_MY",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 6,
+    "repairs_observed": 26,
+    "wrong_senses": [
+     {
+      "sense": "a piece of furniture",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "tryeza / tavolina (a dining table)",
+        "repairs": 12
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "τραπέζι (a dining table)",
+        "repairs": 3
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "שולחן (a desk)",
+        "repairs": 5
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "meja (a desk)",
+        "repairs": 3
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "โต๊ะ (a desk)",
+        "repairs": 2
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "маси (dining tables)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "MySQL database with PowerDNS tables (if different).",
+     "wrong": "Databaza MySQL me tavolina PowerDNS (nëse ndryshe).",
+     "right": "Databaza MySQL me tabelat e PowerDNS (nëse është ndryshe)."
+    }
+   },
+   {
+    "term": "key",
+    "intended": "a cryptographic key, or an API key",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 299,
+    "wrong_senses": [
+     {
+      "sense": "a key on a keyboard",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "πλήκτρο (a keyboard key)",
+        "repairs": 31
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "клавиш (a keyboard key)",
+        "repairs": 18
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ปุ่ม (a button)",
+        "repairs": 33
+       }
+      ]
+     },
+     {
+      "sense": "a key for a lock",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "kyç (a latch, to lock)",
+        "repairs": 177
+       }
+      ]
+     },
+     {
+      "sense": "the adjective crucial/main",
+      "seen_in": [
+       {
+        "locale": "fa_IR",
+        "wrong": "کلیدی (key as in crucial)",
+        "repairs": 40
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "Key ID",
+     "wrong": "ID e kyçit",
+     "right": "ID e çelësit"
+    }
+   },
+   {
+    "term": "character",
+    "intended": "a text character",
+    "locales": [
+     "ar_SA",
+     "fa_IR",
+     "he_IL",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 104,
+    "wrong_senses": [
+     {
+      "sense": "a fictional character or a personality",
+      "seen_in": [
+       {
+        "locale": "he_IL",
+        "wrong": "דמויות (fictional figures)",
+        "repairs": 37
+       },
+       {
+        "locale": "ar_SA",
+        "wrong": "شخصيات (personalities)",
+        "repairs": 22
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "شخصیت (a personality)",
+        "repairs": 40
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ตัวละคร (a character in a story)",
+        "repairs": 3
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "personazh (a character in a story)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "characters",
+     "wrong": "شخصیت ها",
+     "right": "کاراکتر"
+    }
+   },
+   {
+    "term": "flags",
+    "intended": "a numeric flags field (DNSKEY, NSEC3, CAA, NAPTR)",
+    "locales": [
+     "bg_BG",
+     "he_IL",
+     "hi_IN",
+     "ms_MY",
+     "th_TH"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 45,
+    "wrong_senses": [
+     {
+      "sense": "banners",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "знамена (banners)",
+        "repairs": 15
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ธง (a banner)",
+        "repairs": 22
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "bendera (a banner)",
+        "repairs": 3
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "דגל (a banner)",
+        "repairs": 3
+       },
+       {
+        "locale": "hi_IN",
+        "wrong": "ध्वज (a banner)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "th_TH",
+     "msgid": "Flags",
+     "wrong": "ธงชาติ",
+     "right": "แฟล็ก"
+    }
+   },
+   {
+    "term": "slave",
+    "intended": "a PowerDNS secondary zone",
+    "locales": [
+     "el_GR",
+     "ga_IE",
+     "he_IL",
+     "sq_AL",
+     "th_TH"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 42,
+    "wrong_senses": [
+     {
+      "sense": "a human held in slavery",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "zona e skllevërve (the zone of the slaves)",
+        "repairs": 14
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "ζώνη σκλάβων (zone of slaves)",
+        "repairs": 7
+       },
+       {
+        "locale": "ga_IE",
+        "wrong": "daor (enslaved, also costly)",
+        "repairs": 10
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "ทาส (a slave)",
+        "repairs": 7
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "עבד (a slave)",
+        "repairs": 4
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "Add slave zone",
+     "wrong": "Shto zonën e skllevërve",
+     "right": "Shto zonën slave"
+    }
+   },
+   {
+    "term": "view",
+    "intended": "a PowerDNS network view, or a UI screen",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "ga_IE",
+     "sq_AL"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 32,
+    "wrong_senses": [
+     {
+      "sense": "an opinion or a point of view",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "απόψεις (opinions)",
+        "repairs": 2
+       },
+       {
+        "locale": "ga_IE",
+        "wrong": "tuairimí (opinions)",
+        "repairs": 12
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "pikëpamjet (viewpoints)",
+        "repairs": 5
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "نظر (an opinion)",
+        "repairs": 10
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "Прегледите (the reviews)",
+        "repairs": 3
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "ga_IE",
+     "msgid": "Network views",
+     "wrong": "tuairimí líonra",
+     "right": "Radhairc líonra"
+    }
+   },
+   {
+    "term": "salt",
+    "intended": "the NSEC3 salt parameter",
+    "locales": [
+     "el_GR",
+     "fa_IR",
+     "he_IL",
+     "ms_MY",
+     "th_TH"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 14,
+    "wrong_senses": [
+     {
+      "sense": "culinary salt",
+      "seen_in": [
+       {
+        "locale": "ms_MY",
+        "wrong": "garam (table salt)",
+        "repairs": 3
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "เกลือ (table salt)",
+        "repairs": 6
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "מלח (table salt)",
+        "repairs": 2
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "نمک (table salt)",
+        "repairs": 2
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "αλάτι (table salt)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "th_TH",
+     "msgid": "NSEC3 salt must be - (for empty) or a hexadecimal value.",
+     "wrong": "เกลือ NESC3 ต้องเป็น - (สําหรับเปล่า) หรือมูลค่าเลขฐานสิบหก",
+     "right": "salt ของ NSEC3 ต้องเป็น - (สำหรับค่าว่าง) หรือค่าเลขฐานสิบหก"
+    }
+   },
+   {
+    "term": "order / ordering",
+    "intended": "sort order - canonical ordering, priority order, the NAPTR order field",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "he_IL",
+     "sq_AL"
+    ],
+    "locale_count": 5,
+    "repairs_observed": 12,
+    "wrong_senses": [
+     {
+      "sense": "a purchase order or a command",
+      "seen_in": [
+       {
+        "locale": "fa_IR",
+        "wrong": "سفارش کانونی (a canonical purchase order)",
+        "repairs": 3
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "Каноничното поръчване (the canonical ordering of goods)",
+        "repairs": 2
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "urdhërimi kanonik (the canonical commandment)",
+        "repairs": 3
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "κανονική παραγγελία (a regular purchase order)",
+        "repairs": 2
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "צו שיא NAPTR (a NAPTR record decree)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "NAPTR record must contain order, preference, flags, service, regexp, and replacement values.",
+     "wrong": "رکورد NAPTR باید شامل سفارش، اولویت، پرچم، خدمات، regexp و مقادیر جایگزین باشد.",
+     "right": "رکورد NAPTR باید شامل مقادیر ترتیب، ترجیح، پرچم‌ها، سرویس، regexp و جایگزینی باشد."
+    }
+   },
+   {
+    "term": "master / supermaster",
+    "intended": "a PowerDNS primary server, and the supermaster feature",
+    "locales": [
+     "bg_BG",
+     "fa_IR",
+     "he_IL",
+     "sq_AL"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 70,
+    "wrong_senses": [
+     {
+      "sense": "a master craftsman",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "супермайстор (a super craftsman)",
+        "repairs": 29
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "kryemjeshtri (the head craftsman)",
+        "repairs": 15
+       }
+      ]
+     },
+     {
+      "sense": "Superman or a superstar",
+      "seen_in": [
+       {
+        "locale": "he_IL",
+        "wrong": "סופרמן (Superman)",
+        "repairs": 11
+       },
+       {
+        "locale": "sq_AL",
+        "wrong": "supermen (Superman)",
+        "repairs": 5
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "سوپراستار (a superstar)",
+        "repairs": 10
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "bg_BG",
+     "msgid": "Supermaster",
+     "wrong": "Супермайстор",
+     "right": "Супермастър"
+    }
+   },
+   {
+    "term": "host",
+    "intended": "a host - a named machine",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "ms_MY",
+     "th_TH"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 23,
+    "wrong_senses": [
+     {
+      "sense": "a party host or a biological host",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "домакин (a party host)",
+        "repairs": 17
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "เจ้าภาพ (a party host)",
+        "repairs": 3
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "tuan rumah (the host of a house)",
+        "repairs": 1
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "όνομα υποδοχής (a reception name)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "bg_BG",
+     "msgid": "Provide host name",
+     "wrong": "Посочете името на домакина",
+     "right": "Посочете името на хоста"
+    }
+   },
+   {
+    "term": "port",
+    "intended": "a TCP/UDP port number",
+    "locales": [
+     "ar_SA",
+     "bg_BG",
+     "he_IL",
+     "ms_MY"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 19,
+    "wrong_senses": [
+     {
+      "sense": "a seaport",
+      "seen_in": [
+       {
+        "locale": "ar_SA",
+        "wrong": "الميناء (a harbour)",
+        "repairs": 6
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "נמל (a harbour)",
+        "repairs": 9
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "pelabuhan (a harbour)",
+        "repairs": 1
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "пристанище (a harbour)",
+        "repairs": 3
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "he_IL",
+     "msgid": "Provide database port",
+     "wrong": "נמל מסד נתונים",
+     "right": "ציין את פורט מסד הנתונים"
+    }
+   },
+   {
+    "term": "space",
+    "intended": "the space character used as a separator",
+    "locales": [
+     "fa_IR",
+     "hi_IN",
+     "ms_MY",
+     "th_TH"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 14,
+    "wrong_senses": [
+     {
+      "sense": "outer space",
+      "seen_in": [
+       {
+        "locale": "hi_IN",
+        "wrong": "अंतरिक्ष से अलग (separated by outer space)",
+        "repairs": 8
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "angkasa (outer space)",
+        "repairs": 1
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "อวกาศ (outer space)",
+        "repairs": 2
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "فضاها (spaces, as in open areas)",
+        "repairs": 3
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "hi_IN",
+     "msgid": "LP record must contain preference and FQDN separated by space.",
+     "wrong": "LP रिकॉर्ड में वरीयता होना चाहिए और FQDN अंतरिक्ष से अलग होना चाहिए।",
+     "right": "LP रिकॉर्ड में स्पेस से अलग किए गए वरीयता और FQDN होने चाहिए।"
+    }
+   },
+   {
+    "term": "issue (CAA tag)",
+    "intended": "the CAA 'issue' / 'issuewild' tag, meaning certificate issuance",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "he_IL"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 12,
+    "wrong_senses": [
+     {
+      "sense": "a topic or a problem",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "θέμα, θέμα άγριο (topic, wild topic)",
+        "repairs": 4
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "موضوع، مسئله (topic, problem)",
+        "repairs": 4
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "נושא, בעיות (topic, problems)",
+        "repairs": 3
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "проблем, проблем див (problem, wild problem)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "Invalid CAA tag. Must be issue, issuewild, or iodef",
+     "wrong": "Μη έγκυρη ετικέτα CAA. Πρέπει να είναι θέμα, θέμα άγριο, ή iodef",
+     "right": "Μη έγκυρη ετικέτα CAA. Πρέπει να είναι issue, issuewild ή iodef"
+    }
+   },
+   {
+    "term": "wildcard",
+    "intended": "a '*' wildcard name",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "fa_IR",
+     "sq_AL"
+    ],
+    "locale_count": 4,
+    "repairs_observed": 11,
+    "wrong_senses": [
+     {
+      "sense": "a playing card, or a wild animal card",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "kartës së egër (the wild card)",
+        "repairs": 3
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "Άγριες κάρτες (wild cards)",
+        "repairs": 3
+       },
+       {
+        "locale": "fa_IR",
+        "wrong": "کارت وحشی (a wild card)",
+        "repairs": 4
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "дива карта (a wild card)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "For a wildcard record: <code>*.[ZONE]</code>",
+     "wrong": "برای ثبت یک کارت وحشی: AB0AZ*",
+     "right": "برای یک رکورد wildcard: <code>*.[ZONE]</code>"
+    }
+   },
+   {
+    "term": "zone",
+    "intended": "a DNS zone",
+    "locales": [
+     "he_IL",
+     "hi_IN",
+     "th_TH"
+    ],
+    "locale_count": 3,
+    "repairs_observed": 293,
+    "wrong_senses": [
+     {
+      "sense": "a geographic area or a time zone",
+      "seen_in": [
+       {
+        "locale": "th_TH",
+        "wrong": "เขตเวลา (a time zone)",
+        "repairs": 72
+       },
+       {
+        "locale": "hi_IN",
+        "wrong": "क्षेत्र (a region or territory)",
+        "repairs": 220
+       },
+       {
+        "locale": "he_IL",
+        "wrong": "אזור זמן (a time zone)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "hi_IN",
+     "msgid": "Zone",
+     "wrong": "क्षेत्र",
+     "right": "ज़ोन"
+    }
+   },
+   {
+    "term": "deprecated",
+    "intended": "superseded by a standard, no longer recommended",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "sq_AL"
+    ],
+    "locale_count": 3,
+    "repairs_observed": 12,
+    "wrong_senses": [
+     {
+      "sense": "financially depreciated or appraised",
+      "seen_in": [
+       {
+        "locale": "el_GR",
+        "wrong": "αποτιμώνται (are being valued / appraised)",
+        "repairs": 6
+       },
+       {
+        "locale": "bg_BG",
+        "wrong": "обезценени (written down in value)",
+        "repairs": 2
+       }
+      ]
+     },
+     {
+      "sense": "unusable, broken",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "i papërdorshëm (unusable)",
+        "repairs": 4
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "IPv4-compatible IPv6 addresses (::a.b.c.d) are deprecated.",
+     "wrong": "Οι IPv4-συμβατές διευθύνσεις IPv6 (:a.b.c.d) αποτιμώνται.",
+     "right": "Οι IPv4-συμβατές διευθύνσεις IPv6 (::a.b.c.d) έχουν καταργηθεί."
+    }
+   },
+   {
+    "term": "hash",
+    "intended": "a cryptographic hash",
+    "locales": [
+     "bg_BG",
+     "el_GR",
+     "th_TH"
+    ],
+    "locale_count": 3,
+    "repairs_observed": 10,
+    "wrong_senses": [
+     {
+      "sense": "hashish",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "хашиш (hashish)",
+        "repairs": 6
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "χασίς (hashish)",
+        "repairs": 3
+       },
+       {
+        "locale": "th_TH",
+        "wrong": "กัญชา (cannabis)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "bg_BG",
+     "msgid": "1 - SHA-256 Hash",
+     "wrong": "1 - SHA-256 хашиш",
+     "right": "1 - SHA-256 хеш"
+    }
+   },
+   {
+    "term": "native",
+    "intended": "the PowerDNS NATIVE zone type",
+    "locales": [
+     "el_GR",
+     "ms_MY",
+     "sq_AL"
+    ],
+    "locale_count": 3,
+    "repairs_observed": 3,
+    "wrong_senses": [
+     {
+      "sense": "an indigenous person",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "indigjenët (the indigenous people)",
+        "repairs": 1
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "Ιθαγενής (a native inhabitant)",
+        "repairs": 1
+       },
+       {
+        "locale": "ms_MY",
+        "wrong": "Penduduk Asli (indigenous inhabitants)",
+        "repairs": 1
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "Native",
+     "wrong": "indigjenët",
+     "right": "Native"
+    }
+   },
+   {
+    "term": "field",
+    "intended": "a field of a record - a named component of the rdata",
+    "locales": [
+     "ar_SA",
+     "fa_IR"
+    ],
+    "locale_count": 2,
+    "repairs_observed": 119,
+    "wrong_senses": [
+     {
+      "sense": "a background, a plot of land, or a domain of study",
+      "seen_in": [
+       {
+        "locale": "fa_IR",
+        "wrong": "زمینه / میدان (background / a public square)",
+        "repairs": 70
+       },
+       {
+        "locale": "ar_SA",
+        "wrong": "مجال (a domain of activity)",
+        "repairs": 49
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "All fields are required",
+     "wrong": "تمام زمینه ها لازم است",
+     "right": "همه فیلدها الزامی هستند"
+    }
+   },
+   {
+    "term": "resolver",
+    "intended": "a DNS resolver",
+    "locales": [
+     "el_GR",
+     "sq_AL"
+    ],
+    "locale_count": 2,
+    "repairs_observed": 12,
+    "wrong_senses": [
+     {
+      "sense": "a decision-maker, a deputy, or a solvent",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "deputetët e DNSSEC (the DNSSEC members of parliament)",
+        "repairs": 5
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "απολυτές / διακανονιστές (absolutes / arbitrators)",
+        "repairs": 7
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "KEY records may not be supported by all DNS servers and resolvers.",
+     "wrong": "Τα αρχεία ΚΛΕΙΩΝ δεν μπορούν να υποστηρίζονται από όλους τους διακομιστές DNS και τους διακανονιστές.",
+     "right": "Οι εγγραφές KEY ενδέχεται να μην υποστηρίζονται από όλους τους διακομιστές και τους επιλυτές DNS."
+    }
+   },
+   {
+    "term": "string",
+    "intended": "a text string - hexadecimal, base64 or quoted",
+    "locales": [
+     "el_GR",
+     "he_IL"
+    ],
+    "locale_count": 2,
+    "repairs_observed": 7,
+    "wrong_senses": [
+     {
+      "sense": "a musical string or a length of cord",
+      "seen_in": [
+       {
+        "locale": "he_IL",
+        "wrong": "מיתר (a violin string)",
+        "repairs": 5
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "χορδή (a musical chord or string)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "he_IL",
+     "msgid": "ZONEMD digest must be a hexadecimal string.",
+     "wrong": "לעיכול ZONEMD חייב להיות מיתר hexadecimal.",
+     "right": "ה-digest של ZONEMD חייב להיות מחרוזת הקסדצימלית."
+    }
+   },
+   {
+    "term": "custom",
+    "intended": "user-supplied, as in a custom template or a custom CA",
+    "locales": [
+     "el_GR",
+     "sq_AL"
+    ],
+    "locale_count": 2,
+    "repairs_observed": 3,
+    "wrong_senses": [
+     {
+      "sense": "border customs, or folk tradition",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "kufizime doganore (customs restrictions)",
+        "repairs": 1
+       },
+       {
+        "locale": "el_GR",
+        "wrong": "Τομέας CA (Τελωνείο) - CA Domain (Customs house)",
+        "repairs": 2
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "el_GR",
+     "msgid": "CA Domain (Custom)",
+     "wrong": "Τομέας CA (Τελωνείο)",
+     "right": "Τομέας CA (Προσαρμοσμένο)"
+    }
+   },
+   {
+    "term": "template",
+    "intended": "a zone template, a permission template, an email template",
+    "locales": [
+     "bg_BG"
+    ],
+    "locale_count": 1,
+    "repairs_observed": 25,
+    "wrong_senses": [
+     {
+      "sense": "a physical sample or specimen",
+      "seen_in": [
+       {
+        "locale": "bg_BG",
+        "wrong": "образец (a specimen)",
+        "repairs": 25
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "bg_BG",
+     "msgid": "Template",
+     "wrong": "Образец",
+     "right": "Шаблон"
+    }
+   },
+   {
+    "term": "unsign / unsigned",
+    "intended": "remove a DNSSEC signature; an unsigned (non-negative) integer",
+    "locales": [
+     "sq_AL"
+    ],
+    "locale_count": 1,
+    "repairs_observed": 8,
+    "wrong_senses": [
+     {
+      "sense": "lacking a handwritten signature, or resigning",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "Zona pa firmë / Denjimi i zonës (the zone without a signature / demeaning the zone)",
+        "repairs": 8
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "Unsign zone",
+     "wrong": "Hapësirë pa firmë",
+     "right": "Hiq nënshkrimin e zonës"
+    }
+   },
+   {
+    "term": "disabled",
+    "intended": "switched off",
+    "locales": [
+     "fa_IR"
+    ],
+    "locale_count": 1,
+    "repairs_observed": 5,
+    "wrong_senses": [
+     {
+      "sense": "having a disability",
+      "seen_in": [
+       {
+        "locale": "fa_IR",
+        "wrong": "معلول (a disabled person)",
+        "repairs": 5
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "fa_IR",
+     "msgid": "disabled",
+     "wrong": "معلولین معلول",
+     "right": "غیرفعال"
+    }
+   },
+   {
+    "term": "leave",
+    "intended": "leave a field empty",
+    "locales": [
+     "sq_AL"
+    ],
+    "locale_count": 1,
+    "repairs_observed": 4,
+    "wrong_senses": [
+     {
+      "sense": "depart, or go on leave",
+      "seen_in": [
+       {
+        "locale": "sq_AL",
+        "wrong": "Dil bosh (go out empty)",
+        "repairs": 4
+       }
+      ]
+     }
+    ],
+    "example": {
+     "locale": "sq_AL",
+     "msgid": "Leave empty for same database",
+     "wrong": "Dil bosh për të njëjtën bazë të dhënash",
+     "right": "Lini bosh për të njëjtën bazë të dhënash"
+    }
+   }
+  ],
+  "structural": [
+   {
+    "id": "negation_dropped_or_inverted",
+    "severity": "critical",
+    "what": "A negation is lost, added, or the message is replaced by its opposite. The result reads perfectly naturally, which is why it survives review.",
+    "watch": [
+     "NOT",
+     "no",
+     "never",
+     "cannot",
+     "without",
+     "NOT RECOMMENDED",
+     "MUST NOT",
+     "should not",
+     "the un- prefix"
+    ],
+    "detect": "Compare the polarity of the msgstr with the msgid. Check antonym msgid pairs (Set as default / Unset as default, Server Running / Server Not Running, Sign Zone / Unsign Zone, Enabled / Disabled) - if two opposite msgids share one msgstr, one of them is wrong."
+   },
+   {
+    "id": "emphatic_negation_left_in_english",
+    "severity": "critical",
+    "what": "An uppercase NO or NOT in the source is copied through untranslated while the surrounding verb is left affirmative, so the sentence asserts the opposite and ends in a stray English word."
+   },
+   {
+    "id": "trailing_space_dropped",
+    "severity": "high",
+    "what": "A msgid that ends in ': ' has its trailing space trimmed. The caller appends a detail string at runtime, so the detail runs into the colon.",
+    "detect": "msgid endswith whitespace and msgstr does not end with the same run. 32 msgids in the template end in a trailing space.",
+    "fix": "apply_locale_corrections.py --trailing (restore_trailing_whitespace) is safe to run unattended; the source's own trailing run is authoritative."
+   },
+   {
+    "id": "concatenation_fragment_closed_off",
+    "severity": "high",
+    "what": "A deliberately unfinished fragment gains terminal punctuation. '(ID' becomes '(ID)' and 'Are you sure you want to delete' gains a question mark, so the value appended at runtime lands after the closing paren or the '?'.",
+    "detect": "msgid has unbalanced brackets or no terminal punctuation while the msgstr closes or terminates it."
+   },
+   {
+    "id": "normative_force_flattened",
+    "severity": "high",
+    "what": "RFC keywords lose their force. MUST / MUST NOT / SHOULD NOT / REQUIRED / NOT RECOMMENDED become plain statements, and the uppercase CRITICAL: / IMPORTANT: / WARNING: / NOTE: prefix is dropped or downgraded.",
+    "detect": "msgid contains an all-caps keyword; check the msgstr carries an equivalent emphasis, and that a leading 'CRITICAL:'-style prefix survives."
+   },
+   {
+    "id": "degenerate_truncation",
+    "severity": "high",
+    "what": "A message collapses to a fragment. 'Issue Wildcard' became just 'Card'; 'Forward Zones' became 'Vazhdo' (Continue); multi-sentence warnings lose every clause but one.",
+    "detect": "msgstr is drastically shorter than the msgid, or a multi-sentence msgid maps to a single short noun phrase."
+   },
+   {
+    "id": "degenerate_repetition",
+    "severity": "medium",
+    "what": "The engine repeats a word or the whole translation. 'Type' became 'Cineal Cineal Cineal Cineal' in ga_IE; ms_MY repeated words mid-sentence throughout.",
+    "fix": "apply_locale_corrections.py already carries collapse rules for ga_IE and ms_MY."
+   },
+   {
+    "id": "acronym_near_miss",
+    "severity": "high",
+    "what": "A protocol name is corrupted by one or two characters, so it still looks like an acronym but names nothing.",
+    "observed": [
+     "AAAA -> AAA / AAAAA / AA",
+     "SRV -> SVV",
+     "TSIG -> TIG / TSOS",
+     "DNSSEC -> DNSEC",
+     "DNSKEY -> DNSECEY / DNSBOKY",
+     "CDNSKEY -> CDSKEY",
+     "HTTPS -> HTTP / HTPS",
+     "TXT -> TX",
+     "PKIX -> PIX",
+     "DKIM -> DCIM",
+     "ZONEMD -> ZONENMD",
+     "SERIAL -> SERIE",
+     "RRSIG -> RRISIG",
+     "CNAME -> CONAC",
+     "NSEC -> NEIC"
+    ],
+    "detect": "Every literal in scripts/dnt_glossary.json must survive byte-identical. A near-miss is the case where the literal is absent but a string within edit distance 1-2 of it is present."
+   },
+   {
+    "id": "acronym_transliterated_into_target_script",
+    "severity": "high",
+    "what": "A protocol name is rewritten in the target script, which no longer names the protocol and no longer matches anything the user can search for.",
+    "observed": [
+     "hi_IN: SRV -> एसआरवी, NSEC -> एनईसी, DMARC -> डीएमएआरसी, TSIG -> टीएसआईजी",
+     "bg_BG: TSIG -> ТСОС",
+     "sr_RS: API -> АПИ",
+     "ar_SA: PowerDNS -> بوردنز",
+     "el_GR: KEY -> ΚΛΕΙΩΝ"
+    ],
+    "fix": "scripts/dnt_glossary.json 'literal' list is the enforceable set."
+   },
+   {
+    "id": "identifier_or_path_mangled",
+    "severity": "high",
+    "what": "Config keys, table names, file paths and format examples are translated or have their separators spaced out, sending users to something that does not exist. Example addresses and xx-xx-xx-xx-xx-xx templates get extra groups.",
+    "fix": "apply_locale_corrections.py --identifiers repairs the separator-only cases."
+   },
+   {
+    "id": "content_from_another_message",
+    "severity": "critical",
+    "what": "The msgstr is fluent text that belongs to a different message, or to no part of this application at all. 'Native' was rendered as 'Backup frequency' in sv_SE, 'Invalid CNAME configuration.' in id_ID and 'Record appears to be using saliency maps.' in uk_UA.",
+    "detect": "No mechanical rule catches this. It needs a per-entry read against the English source."
+   },
+   {
+    "id": "printf_and_markup_damage",
+    "severity": "critical",
+    "what": "Placeholders and markup are altered: a stray capital Z welded onto %s / %d, %1$s reordered away, <code> tags dropped, [BRACKET_TOKENS] translated.",
+    "fix": "apply_locale_corrections.py --placeholders strips the Z leak; composer locale:check fails on real format-spec breakage."
+   },
+   {
+    "id": "wrong_variety_of_the_language",
+    "severity": "medium",
+    "what": "The engine emitted a related language or the wrong national standard: Indonesian vocabulary throughout ms_MY, Croatian forms in bs_BA, Mainland Chinese words in zh_TW, European Portuguese phrasing in pt_BR.",
+    "fix": "apply_locale_corrections.py already carries the vocabulary tables."
+   },
+   {
+    "id": "terminology_drift",
+    "severity": "low",
+    "what": "The same English term is rendered two or three different ways across the catalogue. Not wrong, but it makes the UI read as if written by three people.",
+    "detect": "Count the renderings of 'record', 'zone', 'key' and 'template' per locale and pick the dominant one."
+   }
+  ]
+ },
+ "per_locale": {
+  "el_GR": {
+   "rules": [
+    {
+     "pattern": "\\bαρχεία\\b",
+     "replace": "εγγραφές",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file"
+    },
+    {
+     "pattern": "\\bΑρχεία\\b",
+     "replace": "Εγγραφές",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file"
+    },
+    {
+     "pattern": "\\bαρχείων\\b",
+     "replace": "εγγραφών",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file"
+    },
+    {
+     "pattern": "\\bαρχείου\\b",
+     "replace": "εγγραφής",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file"
+    },
+    {
+     "pattern": "\\bαρχείο\\b",
+     "replace": "εγγραφή",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file"
+    },
+    {
+     "pattern": "\\bρεκόρ\\b",
+     "replace": "εγγραφή",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "\\bπλήκτρα\\b",
+     "replace": "κλειδιά",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bπλήκτρο\\b",
+     "replace": "κλειδί",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bπλήκτρων\\b",
+     "replace": "κλειδιών",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bχασίς\\b",
+     "replace": "hash",
+     "guard": {
+      "include": "\\bhash",
+      "exclude": null
+     },
+     "source_term": "hash",
+     "wrong_sense": "hashish"
+    },
+    {
+     "pattern": "\\bπέψης\\b",
+     "replace": "σύνοψης",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "\\bπέψη\\b",
+     "replace": "σύνοψη",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "παχέος εντέρου",
+     "replace": "άνω και κάτω τελείας",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "large intestine"
+    },
+    {
+     "pattern": "\\bέντερα\\b",
+     "replace": "άνω και κάτω τελείες",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "large intestine"
+    },
+    {
+     "pattern": "\\bυπερμάστερ\\b",
+     "replace": "supermaster",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "transliteration"
+    },
+    {
+     "pattern": "\\bΣουπερμάστερ\\b",
+     "replace": "Supermaster",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "transliteration"
+    },
+    {
+     "pattern": "\\bαπολυτές\\b",
+     "replace": "επιλυτές",
+     "guard": {
+      "include": "\\bresolvers?\\b",
+      "exclude": null
+     },
+     "source_term": "resolver",
+     "wrong_sense": "absolutes"
+    },
+    {
+     "pattern": "\\bδιακανονιστές\\b",
+     "replace": "επιλυτές",
+     "guard": {
+      "include": "\\bresolvers?\\b",
+      "exclude": null
+     },
+     "source_term": "resolver",
+     "wrong_sense": "arbitrators"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "αποτιμώνται / αποψιλώνεται",
+     "right": "παρωχημένος / έχει καταργηθεί",
+     "source_term": "deprecated",
+     "why_not_mechanical": "The wrong forms are ordinary Greek verbs (to appraise, to defoliate) and the correct replacement changes with the clause, so no single substitution is right."
+    },
+    {
+     "wrong": "θέμα / θέμα άγριο",
+     "right": "issue / issuewild",
+     "source_term": "issue (CAA tag)",
+     "why_not_mechanical": "θέμα is the ordinary word for a topic and appears legitimately elsewhere."
+    },
+    {
+     "wrong": "Τελωνείο / έθιμο",
+     "right": "Προσαρμοσμένο",
+     "source_term": "custom",
+     "why_not_mechanical": "Only one occurrence each, and Τελωνείο is a real word for a customs house."
+    }
+   ]
+  },
+  "bg_BG": {
+   "rules": [
+    {
+     "pattern": "\\bрекорд\\b",
+     "replace": "запис",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "\\bрекорда\\b",
+     "replace": "записа",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "\\bрекорди\\b",
+     "replace": "записи",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "\\bклавиш\\b",
+     "replace": "ключ",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bклавиша\\b",
+     "replace": "ключа",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bклавиши\\b",
+     "replace": "ключове",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "keyboard key"
+    },
+    {
+     "pattern": "\\bхашиш\\b",
+     "replace": "хеш",
+     "guard": {
+      "include": "\\bhash",
+      "exclude": null
+     },
+     "source_term": "hash",
+     "wrong_sense": "hashish"
+    },
+    {
+     "pattern": "\\bхашишът\\b",
+     "replace": "хешът",
+     "guard": {
+      "include": "\\bhash",
+      "exclude": null
+     },
+     "source_term": "hash",
+     "wrong_sense": "hashish"
+    },
+    {
+     "pattern": "\\bхраносмилането\\b",
+     "replace": "дайджест",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "\\bбюлетини\\b",
+     "replace": "дайджест",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "bulletins"
+    },
+    {
+     "pattern": "\\bдомакин\\b",
+     "replace": "хост",
+     "guard": {
+      "include": "\\bhosts?\\b|hostname",
+      "exclude": null
+     },
+     "source_term": "host",
+     "wrong_sense": "party host"
+    },
+    {
+     "pattern": "\\bдомакина\\b",
+     "replace": "хоста",
+     "guard": {
+      "include": "\\bhosts?\\b|hostname",
+      "exclude": null
+     },
+     "source_term": "host",
+     "wrong_sense": "party host"
+    },
+    {
+     "pattern": "\\bзнамена\\b",
+     "replace": "флагове",
+     "guard": {
+      "include": "\\bflags?\\b",
+      "exclude": null
+     },
+     "source_term": "flags",
+     "wrong_sense": "banners"
+    },
+    {
+     "pattern": "\\bсупермайстор\\b",
+     "replace": "супермастър",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "master craftsman"
+    },
+    {
+     "pattern": "\\bсупермайстори\\b",
+     "replace": "супермастъри",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "master craftsman"
+    },
+    {
+     "pattern": "\\bСупермайсторът\\b",
+     "replace": "Супермастърът",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "master craftsman"
+    },
+    {
+     "pattern": "\\bобразец\\b",
+     "replace": "шаблон",
+     "guard": {
+      "include": "\\btemplates?\\b",
+      "exclude": null
+     },
+     "source_term": "template",
+     "wrong_sense": "specimen"
+    },
+    {
+     "pattern": "\\bОбразецът\\b",
+     "replace": "Шаблонът",
+     "guard": {
+      "include": "\\btemplates?\\b",
+      "exclude": null
+     },
+     "source_term": "template",
+     "wrong_sense": "specimen"
+    },
+    {
+     "pattern": "дебелото черво",
+     "replace": "двоеточие",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "large intestine"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])AAA(?![A-Za-z0-9])",
+     "replace": "AAAA",
+     "guard": {
+      "include": "\\bAAAA\\b",
+      "exclude": null
+     },
+     "source_term": "AAAA",
+     "wrong_sense": "acronym near-miss"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "проблем / проблем див",
+     "right": "issue / issuewild",
+     "source_term": "issue (CAA tag)",
+     "why_not_mechanical": "проблем is the ordinary word for a problem and is correct in error messages."
+    },
+    {
+     "wrong": "поръчване",
+     "right": "подреждане",
+     "source_term": "order",
+     "why_not_mechanical": "поръчване is a legitimate word for placing an order; only the canonical-ordering and NAPTR entries are wrong."
+    },
+    {
+     "wrong": "ТСОС",
+     "right": "TSIG",
+     "source_term": "TSIG",
+     "why_not_mechanical": "A Cyrillic rewrite of an acronym. The full acronym repair belongs in the dnt_glossary literal check, not in a per-locale substitution."
+    }
+   ]
+  },
+  "he_IL": {
+   "rules": [
+    {
+     "pattern": "\\bתקליט\\b",
+     "replace": "רשומה",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "vinyl record"
+    },
+    {
+     "pattern": "\\bתיעוד\\b",
+     "replace": "רשומה",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(note|log|logs|comment|logbook)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "documentation"
+    },
+    {
+     "pattern": "\\bנמל\\b",
+     "replace": "פורט",
+     "guard": {
+      "include": "\\bports?\\b",
+      "exclude": null
+     },
+     "source_term": "port",
+     "wrong_sense": "seaport"
+    },
+    {
+     "pattern": "\\bהנמל\\b",
+     "replace": "הפורט",
+     "guard": {
+      "include": "\\bports?\\b",
+      "exclude": null
+     },
+     "source_term": "port",
+     "wrong_sense": "seaport"
+    },
+    {
+     "pattern": "\\bשולחן\\b",
+     "replace": "טבלה",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "desk"
+    },
+    {
+     "pattern": "\\bשולחנות\\b",
+     "replace": "טבלאות",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "desk"
+    },
+    {
+     "pattern": "\\bדמויות\\b",
+     "replace": "תווים",
+     "guard": {
+      "include": "\\bcharacters?\\b",
+      "exclude": null
+     },
+     "source_term": "character",
+     "wrong_sense": "fictional figures"
+    },
+    {
+     "pattern": "\\bלעיכול\\b",
+     "replace": "digest",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "\\bעיכול\\b",
+     "replace": "digest",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "\\bסופרמן\\b",
+     "replace": "supermaster",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "Superman"
+    },
+    {
+     "pattern": "\\bמלח\\b",
+     "replace": "salt",
+     "guard": {
+      "include": "\\bsalts?\\b",
+      "exclude": null
+     },
+     "source_term": "salt",
+     "wrong_sense": "table salt"
+    },
+    {
+     "pattern": "המעי הגס",
+     "replace": "נקודתיים",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "large intestine"
+    },
+    {
+     "pattern": "\\bקולונלים\\b",
+     "replace": "נקודתיים",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "colonels"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "מפתחי",
+     "right": "מפתחות",
+     "source_term": "key",
+     "why_not_mechanical": "מפתחי is both the construct form of keys and the word for developers. Hebrew morphology makes a blind substitution unsafe."
+    },
+    {
+     "wrong": "נושא / בעיות",
+     "right": "issue / issuewild",
+     "source_term": "issue (CAA tag)",
+     "why_not_mechanical": "נושא is the ordinary word for a subject."
+    },
+    {
+     "wrong": "צו / הזמנת",
+     "right": "סדר",
+     "source_term": "order",
+     "why_not_mechanical": "Both are ordinary words (a decree, a reservation) used correctly elsewhere."
+    }
+   ]
+  },
+  "fa_IR": {
+   "rules": [
+    {
+     "pattern": "\\bسوابق\\b",
+     "replace": "رکوردهای",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(note|log|logs|comment|logbook)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "background history"
+    },
+    {
+     "pattern": "\\bپرونده\\b",
+     "replace": "رکورد",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(file|files|log|logs|logbook|logging)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "file or dossier"
+    },
+    {
+     "pattern": "\\bهضم\\b",
+     "replace": "چکیده",
+     "guard": {
+      "include": "\\bdigest",
+      "exclude": null
+     },
+     "source_term": "digest",
+     "wrong_sense": "digestion"
+    },
+    {
+     "pattern": "\\bشخصیت های\\b",
+     "replace": "کاراکترهای",
+     "guard": {
+      "include": "\\bcharacters?\\b",
+      "exclude": null
+     },
+     "source_term": "character",
+     "wrong_sense": "personalities"
+    },
+    {
+     "pattern": "\\bشخصیت\\b",
+     "replace": "کاراکتر",
+     "guard": {
+      "include": "\\bcharacters?\\b",
+      "exclude": null
+     },
+     "source_term": "character",
+     "wrong_sense": "personality"
+    },
+    {
+     "pattern": "\\bسوپراستار\\b",
+     "replace": "سوپرمستر",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "superstar"
+    },
+    {
+     "pattern": "\\bنمک\\b",
+     "replace": "salt",
+     "guard": {
+      "include": "\\bsalts?\\b",
+      "exclude": null
+     },
+     "source_term": "salt",
+     "wrong_sense": "table salt"
+    },
+    {
+     "pattern": "\\bمیدان\\b",
+     "replace": "فیلد",
+     "guard": {
+      "include": "\\bfields?\\b",
+      "exclude": null
+     },
+     "source_term": "field",
+     "wrong_sense": "public square"
+    },
+    {
+     "pattern": "\\bمعلول\\b",
+     "replace": "غیرفعال",
+     "guard": {
+      "include": "\\bdisabled?\\b",
+      "exclude": null
+     },
+     "source_term": "disabled",
+     "wrong_sense": "having a disability"
+    },
+    {
+     "pattern": "کارت وحشی",
+     "replace": "وایلدکارت",
+     "guard": {
+      "include": "\\bwildcard",
+      "exclude": null
+     },
+     "source_term": "wildcard",
+     "wrong_sense": "wild playing card"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])AA(?![A-Za-z0-9])",
+     "replace": "AAAA",
+     "guard": {
+      "include": "\\bAAAA\\b",
+      "exclude": null
+     },
+     "source_term": "AAAA",
+     "wrong_sense": "acronym near-miss"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "کلیدی",
+     "right": "کلید",
+     "source_term": "key",
+     "why_not_mechanical": "کلیدی is the adjective 'key/crucial' and is also the correct relative form of کلید in some constructions."
+    },
+    {
+     "wrong": "سفارش",
+     "right": "ترتیب",
+     "source_term": "order",
+     "why_not_mechanical": "سفارش is the ordinary word for a purchase order and is used correctly elsewhere."
+    },
+    {
+     "wrong": "موضوع / مسئله",
+     "right": "issue / issuewild",
+     "source_term": "issue (CAA tag)",
+     "why_not_mechanical": "Both are ordinary words for a topic and a problem."
+    },
+    {
+     "wrong": "زمینه",
+     "right": "فیلد",
+     "source_term": "field",
+     "why_not_mechanical": "زمینه legitimately means background or context in several settings descriptions; only the rdata-field entries are wrong."
+    }
+   ]
+  },
+  "sq_AL": {
+   "rules": [
+    {
+     "pattern": "(?<![/\\\\\\w-])[Rr]ekordi(?![/\\\\\\w-])",
+     "replace": "regjistrimi",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])rekordet(?![/\\\\\\w-])",
+     "replace": "regjistrimet",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])rekordin(?![/\\\\\\w-])",
+     "replace": "regjistrimin",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])rekordit(?![/\\\\\\w-])",
+     "replace": "regjistrimit",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])rekorde(?![/\\\\\\w-])",
+     "replace": "regjistrime",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])rekord(?![/\\\\\\w-])",
+     "replace": "regjistrim",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": null
+     },
+     "source_term": "record",
+     "wrong_sense": "sports record"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])kyçin(?![/\\\\\\w-])",
+     "replace": "çelësin",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "latch"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])kyçit(?![/\\\\\\w-])",
+     "replace": "çelësit",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "latch"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])kyçet(?![/\\\\\\w-])",
+     "replace": "çelësat",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "latch"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])kyçi(?![/\\\\\\w-])",
+     "replace": "çelësi",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "latch"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])[Kk]yç(?![/\\\\\\w-])",
+     "replace": "çelës",
+     "guard": {
+      "include": "\\bkeys?\\b",
+      "exclude": null
+     },
+     "source_term": "key",
+     "wrong_sense": "latch"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tryez[aëës]*(?![/\\\\\\w-])",
+     "replace": "tabela",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "dining table"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tavolina(?![/\\\\\\w-])",
+     "replace": "tabela",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "dining table"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tavolinat(?![/\\\\\\w-])",
+     "replace": "tabelat",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "dining table"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])skllev[a-zëç]*(?![/\\\\\\w-])",
+     "replace": "slave",
+     "guard": {
+      "include": "\\bslaves?\\b",
+      "exclude": null
+     },
+     "source_term": "slave",
+     "wrong_sense": "human slavery"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])skllav[a-zëç]*(?![/\\\\\\w-])",
+     "replace": "slave",
+     "guard": {
+      "include": "\\bslaves?\\b",
+      "exclude": null
+     },
+     "source_term": "slave",
+     "wrong_sense": "human slavery"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])supermen(?![/\\\\\\w-])",
+     "replace": "supermaster",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "Superman"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])[Kk]ryemjeshtr[a-zëç]*(?![/\\\\\\w-])",
+     "replace": "supermaster",
+     "guard": {
+      "include": "supermaster",
+      "exclude": null
+     },
+     "source_term": "supermaster",
+     "wrong_sense": "head craftsman"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])deputet[a-zëç]*(?![/\\\\\\w-])",
+     "replace": "zgjidhës",
+     "guard": {
+      "include": "\\bresolvers?\\b",
+      "exclude": null
+     },
+     "source_term": "resolver",
+     "wrong_sense": "members of parliament"
+    },
+    {
+     "pattern": "kart[ëe]s? s[eë] eg[eë]r",
+     "replace": "wildcard",
+     "guard": {
+      "include": "\\bwildcard",
+      "exclude": null
+     },
+     "source_term": "wildcard",
+     "wrong_sense": "wild playing card"
+    },
+    {
+     "pattern": "\\bDil bosh\\b",
+     "replace": "Lini bosh",
+     "guard": {
+      "include": "leave .{0,12}empty",
+      "exclude": null
+     },
+     "source_term": "leave",
+     "wrong_sense": "depart"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "urdhërimi / Urdhër",
+     "right": "renditja",
+     "source_term": "order",
+     "why_not_mechanical": "urdhër is the ordinary word for a command and appears correctly elsewhere."
+    },
+    {
+     "wrong": "dogan-",
+     "right": "i personalizuar",
+     "source_term": "custom",
+     "why_not_mechanical": "Single occurrence."
+    },
+    {
+     "wrong": "i papërdorshëm / nuk është më",
+     "right": "i vjetruar",
+     "source_term": "deprecated",
+     "why_not_mechanical": "The wrong renderings are ordinary phrases whose correct replacement depends on the surrounding clause."
+    },
+    {
+     "wrong": "pashkruar / pa firmë",
+     "right": "i panënshkruar / pa shenjë",
+     "source_term": "unsigned",
+     "why_not_mechanical": "Two different correct answers - DNSSEC-unsigned and arithmetic-unsigned - and the msgid guard cannot separate them reliably."
+    }
+   ]
+  },
+  "ms_MY": {
+   "rules": [
+    {
+     "pattern": "(?<![/\\\\\\w-])[Rr]ekaman(?![/\\\\\\w-])",
+     "replace": "rekod",
+     "guard": {
+      "include": "\\brecords?\\b",
+      "exclude": "\\b(note|log|logs|comment|logbook)\\b"
+     },
+     "source_term": "record",
+     "wrong_sense": "audio recording"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])[Gg]aram(?![/\\\\\\w-])",
+     "replace": "salt",
+     "guard": {
+      "include": "\\bsalts?\\b",
+      "exclude": null
+     },
+     "source_term": "salt",
+     "wrong_sense": "table salt"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])meja(?![/\\\\\\w-])",
+     "replace": "jadual",
+     "guard": {
+      "include": "\\btables?\\b",
+      "exclude": null
+     },
+     "source_term": "table",
+     "wrong_sense": "desk"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])pelabuhan(?![/\\\\\\w-])",
+     "replace": "port",
+     "guard": {
+      "include": "\\bports?\\b",
+      "exclude": null
+     },
+     "source_term": "port",
+     "wrong_sense": "harbour"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tuan rumah(?![/\\\\\\w-])",
+     "replace": "hos",
+     "guard": {
+      "include": "\\bhosts?\\b|hostname",
+      "exclude": null
+     },
+     "source_term": "host",
+     "wrong_sense": "party host"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "bendera",
+     "right": "flag",
+     "source_term": "flags",
+     "why_not_mechanical": "Dry-run rejected: the repaired catalogue keeps bendera in 17 entries, so it is the accepted rendering here even though three entries were changed away from it. A terminology-consistency decision, not a defect."
+    },
+    {
+     "wrong": "catatan",
+     "right": "rekod",
+     "source_term": "record",
+     "why_not_mechanical": "Already handled by the guarded rule in apply_locale_corrections._subs_ms(); do not duplicate it here."
+    },
+    {
+     "wrong": "angkasa",
+     "right": "ruang",
+     "source_term": "space",
+     "why_not_mechanical": "Single occurrence."
+    }
+   ]
+  },
+  "th_TH": {
+   "rules": [
+    {
+     "pattern": "เขตเวลา",
+     "replace": "โซน",
+     "guard": {
+      "include": "\\bzones?\\b",
+      "exclude": "time.?zone"
+     },
+     "source_term": "zone",
+     "wrong_sense": "time zone"
+    },
+    {
+     "pattern": "ลำไส้ใหญ่",
+     "replace": "ทวิภาค",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "large intestine"
+    },
+    {
+     "pattern": "เกลือ",
+     "replace": "salt",
+     "guard": {
+      "include": "\\bsalts?\\b",
+      "exclude": null
+     },
+     "source_term": "salt",
+     "wrong_sense": "table salt"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "ทาส",
+     "right": "slave",
+     "source_term": "slave",
+     "why_not_mechanical": "Dry-run rejected: 10 entries still use it against 7 that were changed, and with no word boundary the replacement produced a run-on token."
+    },
+    {
+     "wrong": "ปุ่ม",
+     "right": "คีย์",
+     "source_term": "key",
+     "why_not_mechanical": "Thai has no word boundaries, and ปุ่ม is the correct word for a UI button, which this catalogue also needs."
+    },
+    {
+     "wrong": "สถิติ",
+     "right": "บันทึก",
+     "source_term": "record",
+     "why_not_mechanical": "สถิติ is the correct word for statistics, which the dashboard strings use."
+    },
+    {
+     "wrong": "การย่อย",
+     "right": "ไดเจสต์ / digest",
+     "source_term": "digest",
+     "why_not_mechanical": "Substring replacement in an unspaced script risks cutting a longer word."
+    },
+    {
+     "wrong": "ธง",
+     "right": "แฟล็ก",
+     "source_term": "flags",
+     "why_not_mechanical": "Short unspaced substring; too easy to hit a longer compound."
+    },
+    {
+     "wrong": "เจ้าภาพ",
+     "right": "โฮสต์",
+     "source_term": "host",
+     "why_not_mechanical": "Only three occurrences and no word boundary to anchor on."
+    }
+   ]
+  },
+  "hi_IN": {
+   "rules": [
+    {
+     "pattern": "अंतरिक्ष",
+     "replace": "रिक्त स्थान",
+     "guard": {
+      "include": "\\bspaces?\\b",
+      "exclude": null
+     },
+     "source_term": "space",
+     "wrong_sense": "outer space"
+    },
+    {
+     "pattern": "उपनिवेशित",
+     "replace": "कोलन से अलग किए गए",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "colonised"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "क्षेत्र",
+     "right": "ज़ोन",
+     "source_term": "zone",
+     "why_not_mechanical": "76 live occurrences, but क्षेत्र is also the correct word for a field and an area, so only the zone-sense ones are wrong."
+    },
+    {
+     "wrong": "एसआरवी / एनईसी / डीएमएआरसी / टीएसआईजी / डीएनएसकेवाई",
+     "right": "SRV / NSEC / DMARC / TSIG / DNSKEY",
+     "source_term": "acronyms",
+     "why_not_mechanical": "Devanagari transliterations of protocol names. There are dozens of them and the mapping is per-acronym; enforce through the dnt_glossary literal list instead."
+    },
+    {
+     "wrong": "ध्वज",
+     "right": "फ़्लैग",
+     "source_term": "flags",
+     "why_not_mechanical": "ध्वज is a legitimate word and only two occurrences were repaired."
+    }
+   ]
+  },
+  "ar_SA": {
+   "rules": [
+    {
+     "pattern": "\\bالميناء\\b",
+     "replace": "المنفذ",
+     "guard": {
+      "include": "\\bports?\\b",
+      "exclude": null
+     },
+     "source_term": "port",
+     "wrong_sense": "seaport"
+    },
+    {
+     "pattern": "\\bشخصيات\\b",
+     "replace": "أحرف",
+     "guard": {
+      "include": "\\bcharacters?\\b",
+      "exclude": null
+     },
+     "source_term": "character",
+     "wrong_sense": "personalities"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])AAAAA(?![A-Za-z0-9])",
+     "replace": "AAAA",
+     "guard": {
+      "include": "\\bAAAA\\b",
+      "exclude": null
+     },
+     "source_term": "AAAA",
+     "wrong_sense": "acronym near-miss"
+    },
+    {
+     "pattern": "\\bبوردنز\\b",
+     "replace": "PowerDNS",
+     "guard": {
+      "include": "PowerDNS",
+      "exclude": null
+     },
+     "source_term": "PowerDNS",
+     "wrong_sense": "transliterated brand"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "مجال / ميداني",
+     "right": "حقل",
+     "source_term": "field",
+     "why_not_mechanical": "مجال is the ordinary word for a domain or area of activity."
+    }
+   ]
+  },
+  "ga_IE": {
+   "rules": [
+    {
+     "pattern": "(?<![/\\\\\\w-])daor(?![/\\\\\\w-])",
+     "replace": "sclábhaí",
+     "guard": {
+      "include": "\\bslaves?\\b",
+      "exclude": null
+     },
+     "source_term": "slave",
+     "wrong_sense": "costly / enslaved"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])Tuairimí(?![/\\\\\\w-])",
+     "replace": "Amhairc",
+     "guard": {
+      "include": "\\bviews?\\b",
+      "exclude": null
+     },
+     "source_term": "view",
+     "wrong_sense": "opinions"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tuairimí(?![/\\\\\\w-])",
+     "replace": "amhairc",
+     "guard": {
+      "include": "\\bviews?\\b",
+      "exclude": null
+     },
+     "source_term": "view",
+     "wrong_sense": "opinions"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])Tuairim(?![/\\\\\\w-])",
+     "replace": "Amharc",
+     "guard": {
+      "include": "\\bviews?\\b",
+      "exclude": null
+     },
+     "source_term": "view",
+     "wrong_sense": "an opinion"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])tuairim(?![/\\\\\\w-])",
+     "replace": "amharc",
+     "guard": {
+      "include": "\\bviews?\\b",
+      "exclude": null
+     },
+     "source_term": "view",
+     "wrong_sense": "an opinion"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])coilín[a-záéíóú]*(?![/\\\\\\w-])",
+     "replace": "idirstad",
+     "guard": {
+      "include": "\\bcolon",
+      "exclude": null
+     },
+     "source_term": "colon",
+     "wrong_sense": "colony"
+    },
+    {
+     "pattern": "(?<![/\\\\\\w-])luachmhara?(?![/\\\\\\w-])",
+     "replace": "neamhbhailí",
+     "guard": {
+      "include": "\\binvalid\\b",
+      "exclude": null
+     },
+     "source_term": "invalid",
+     "wrong_sense": "valuable"
+    }
+   ],
+   "review_only": [
+    {
+     "wrong": "dearcadh",
+     "right": "amhairc",
+     "source_term": "view",
+     "why_not_mechanical": "One live occurrence, in the genitive, so the replacement needs case agreement."
+    },
+    {
+     "wrong": "sreang",
+     "right": "teaghran",
+     "source_term": "string",
+     "why_not_mechanical": "Single occurrence."
+    },
+    {
+     "wrong": "Custaim",
+     "right": "Saincheaptha",
+     "source_term": "custom",
+     "why_not_mechanical": "Only two occurrences and Custaim is the correct word for the customs service."
+    }
+   ]
+  },
+  "da_DK": {
+   "rules": [
+    {
+     "pattern": "(?<![A-Za-z0-9])DNSEC(?![A-Za-z0-9])",
+     "replace": "DNSSEC",
+     "guard": {
+      "include": "\\bDNSSEC\\b",
+      "exclude": null
+     },
+     "source_term": "DNSSEC",
+     "wrong_sense": "acronym near-miss"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])DCIM(?![A-Za-z0-9])",
+     "replace": "DKIM",
+     "guard": {
+      "include": "\\bDKIM\\b",
+      "exclude": null
+     },
+     "source_term": "DKIM",
+     "wrong_sense": "acronym near-miss"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])DNSECEY(?![A-Za-z0-9])",
+     "replace": "DNSKEY",
+     "guard": {
+      "include": "\\bDNSKEY\\b",
+      "exclude": null
+     },
+     "source_term": "DNSKEY",
+     "wrong_sense": "acronym near-miss"
+    }
+   ]
+  },
+  "sr_RS": {
+   "rules": [
+    {
+     "pattern": "regексп",
+     "replace": "regexp",
+     "guard": {
+      "include": "\\bregexp?\\b",
+      "exclude": null
+     },
+     "source_term": "regexp",
+     "wrong_sense": "half-Cyrillic identifier"
+    }
+   ]
+  },
+  "sl_SI": {
+   "rules": [
+    {
+     "pattern": "(?<![A-Za-z0-9])AAA(?![A-Za-z0-9])",
+     "replace": "AAAA",
+     "guard": {
+      "include": "\\bAAAA\\b",
+      "exclude": null
+     },
+     "source_term": "AAAA",
+     "wrong_sense": "acronym near-miss"
+    },
+    {
+     "pattern": "(?<![A-Za-z0-9])ZONENMD(?![A-Za-z0-9])",
+     "replace": "ZONEMD",
+     "guard": {
+      "include": "\\bZONEMD\\b",
+      "exclude": null
+     },
+     "source_term": "ZONEMD",
+     "wrong_sense": "acronym near-miss"
+    }
+   ]
+  }
+ }
+}
