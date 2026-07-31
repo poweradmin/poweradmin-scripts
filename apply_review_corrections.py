@@ -125,21 +125,30 @@ def collect_msgstr(locale, review_dir):
         family = match.group(1) if match else None
         return ORDER.index(family) + 1 if family in ORDER else 0
 
-    paths = sorted((p for p in glob.glob(os.path.join(review_dir, f'OUT_{locale}_*.json'))
-                    if not re.search(r'_plr\d*\.json$', p)),
-                   key=lambda p: (rank(p), p))
-    fixes, overrides = {}, 0
+    paths = sorted(p for p in glob.glob(os.path.join(review_dir, f'OUT_{locale}_*.json'))
+                   if not re.search(r'_plr\d*\.json$', p))
+    proposals = {}
     for path in paths:
         with open(path, encoding='utf-8') as fh:
             data = json.load(fh)
         for msgid, new in data.items():
-            if msgid in fixes and fixes[msgid] != new:
-                if rank(path) == 0:
-                    raise SystemExit(f'CONFLICT: two slices disagree on {msgid[:60]!r}')
-                overrides += 1
-            fixes[msgid] = new
+            proposals.setdefault(msgid, []).append((rank(path), path, new))
+
+    fixes, overrides = {}, 0
+    for msgid, offers in proposals.items():
+        top = max(r for r, _, _ in offers)
+        winners = {new: path for r, path, new in offers if r == top}
+        if len(winners) > 1:
+            # Two files of equal standing reached different answers. A filename
+            # tiebreak would pick one silently, so this needs a human - either fix
+            # the input files or record the decision in a later-ranked family.
+            names = ', '.join(sorted(os.path.basename(p) for p in winners.values()))
+            raise SystemExit(f'CONFLICT: {names} disagree on {msgid[:60]!r}')
+        fixes[msgid] = next(iter(winners))
+        if any(r < top and new != fixes[msgid] for r, _, new in offers):
+            overrides += 1
     if overrides:
-        print(f'later pass overrode {overrides} slice corrections')
+        print(f'later pass overrode {overrides} earlier corrections')
     return fixes
 
 
