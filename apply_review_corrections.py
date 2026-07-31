@@ -82,6 +82,14 @@ def dnt_dropped(msgid, new, locale, dnt):
             if locale not in skip and pat.search(msgid) and term.lower() not in haystack]
 
 
+def _lead(text):
+    return text[:len(text) - len(text.lstrip())]
+
+
+def _trail(text):
+    return text[len(text.rstrip()):]
+
+
 def gate(msgid, new, old, locale, dnt):
     """Reasons this correction must not be applied, empty when it is safe."""
     bad = []
@@ -91,14 +99,15 @@ def gate(msgid, new, old, locale, dnt):
         bad.append('HTML tags differ from msgid')
     if sorted(TOKEN.findall(msgid)) != sorted(TOKEN.findall(new)):
         bad.append('[TOKEN]s differ from msgid')
-    if (msgid[:1].isspace() != new[:1].isspace()) or (
-            msgid != msgid.rstrip()) != (new != new.rstrip()):
+    # Exact runs, not merely "is there whitespace": these strings are concatenated
+    # into sentences, so two leading spaces collapsing to one is real damage.
+    if _lead(msgid) != _lead(new) or _trail(msgid) != _trail(new):
         bad.append('leading/trailing whitespace differs from msgid')
     missing = [t for t in set(IDENTIFIER.findall(msgid)) if t not in new]
     if missing:
         bad.append(f'identifiers dropped: {missing}')
     src_ips, new_ips = set(IPV4.findall(msgid)), set(IPV4.findall(new))
-    if new_ips and src_ips != new_ips:
+    if src_ips != new_ips:
         bad.append(f'IP literals differ: {sorted(src_ips)} vs {sorted(new_ips)}')
     dropped = dnt_dropped(msgid, new, locale, dnt)
     if dropped:
@@ -207,8 +216,10 @@ def apply_plurals(locale, path, entries, review_dir):
             continue
         for index, form in forms.items():
             i = int(index)
-            if count is not None and i >= count:
-                problems.append((msgid, [f'index {i} beyond nplurals={count}']))
+            # Bound below as well as above: set_plural(-1, ...) would write an
+            # msgstr[-1] that gettext can never select.
+            if i < 0 or (count is not None and i >= count):
+                problems.append((msgid, [f'index {i} outside 0..{(count or 1) - 1}']))
                 continue
             # gettext picks by index, so form 0 answers msgid and the rest answer
             # msgid_plural. Checking every form against msgid would reject correct
