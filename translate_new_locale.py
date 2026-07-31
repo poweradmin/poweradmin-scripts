@@ -51,23 +51,6 @@ def _unmask(text: str, table):
 ROOT = poutil.ROOT
 EN_PO = poutil.po_path("en_EN")
 
-# Plural forms per locale (ISO formula)
-PLURAL_FORMS = {
-    "ar": "nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5);",
-    "bg": "nplurals=2; plural=(n != 1);",
-    "da": "nplurals=2; plural=(n != 1);",
-    "el": "nplurals=2; plural=(n != 1);",
-    "fa": "nplurals=2; plural=(n > 1);",
-    "ga": "nplurals=5; plural=(n==1 ? 0 : n==2 ? 1 : n<7 ? 2 : n<11 ? 3 : 4);",
-    "he": "nplurals=2; plural=(n != 1);",
-    "hi": "nplurals=2; plural=(n != 1);",
-    "ms": "nplurals=1; plural=0;",
-    "mt": "nplurals=4; plural=(n==1 ? 0 : (n==0 || (n%100>1 && n%100<11)) ? 1 : (n%100>10 && n%100<20) ? 2 : 3);",
-    "sl": "nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3);",
-    "sq": "nplurals=2; plural=(n != 1);",
-    "th": "nplurals=1; plural=0;",
-}
-
 
 def batch_translate(texts, target_iso, batch_size=100, checkpoint=None, **_):
     """Translate a list of texts via Argos (offline, no rate limits).
@@ -165,23 +148,31 @@ def build_locale(target_locale: str, iso_code: str):
     poutil.write(out_path, entries)
     print(f"Wrote {out_path}")
 
+    if nplurals > 2:
+        pending = sum(1 for e in entries if e.msgid_plural and not e.obsolete)
+        print(f"\nWARNING: {iso_code} has {nplurals} plural forms and this baseline filled "
+              f"indices 1..{nplurals - 1} with the same text in all {pending} plural entries.\n"
+              f"         Those are placeholders, not translations - each index needs its own "
+              f"form before the locale ships.")
+
 
 def rewrite_header(block: str, target_locale: str, iso_code: str) -> str:
     block = re.sub(r'"Language: [^"]*\\n"', f'"Language: {target_locale}\\\\n"', block)
     block = re.sub(r'"Last-Translator: [^"]*"', '"Last-Translator: Automatically generated\\\\n"', block)
-    plural = PLURAL_FORMS.get(iso_code)
-    if plural:
-        if 'Plural-Forms:' in block:
-            block = re.sub(r'"Plural-Forms: [^"]*\\n"', f'"Plural-Forms: {plural}\\\\n"', block)
-        else:
-            block = block.rstrip() + f'\n"Plural-Forms: {plural}\\n"'
+    plural = poutil.plural_rule(iso_code)
+    if 'Plural-Forms:' in block:
+        # The existing field may wrap across several quoted lines, so consume
+        # every continuation line rather than matching one. Matching one line
+        # leaves the tail behind and appends a second Plural-Forms field.
+        block = re.sub(r'"Plural-Forms: [^"]*"(?:\n"[^"]*")*',
+                       f'"Plural-Forms: {plural}\\\\n"', block)
+    else:
+        block = block.rstrip() + f'\n"Plural-Forms: {plural}\\n"'
     return block
 
 
 def nplurals_for(iso_code: str) -> int:
-    formula = PLURAL_FORMS.get(iso_code, "nplurals=2;")
-    m = re.match(r"nplurals=(\d+)", formula)
-    return int(m.group(1)) if m else 2
+    return poutil.plural_spec(poutil.plural_rule(iso_code))[0]
 
 
 if __name__ == "__main__":

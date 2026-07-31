@@ -7,6 +7,8 @@ Usage: python import_translations.py <json_file> [--module=ModuleName]
 
 The first form imports from an extracted untranslated JSON file (from extract_untranslated.py).
 The second form imports from a simple {msgid: translation} JSON dict directly into the .po file.
+In that dict a plural msgid takes a {"0": form, "1": form, ...} map with one key per form the
+locale declares; a bare string there is an error, not a skipped entry.
 
 By default only entries still needing translation are filled. Pass --force to overwrite
 existing translations too, which is what repairing corrupted machine output needs.
@@ -39,10 +41,16 @@ class PoUpdater:
         entries = poutil.parse(self.po_file)
         print(f"Created backup: {poutil.backup(self.po_file)}")
 
+        # A plural payload carries `translations`, never `translation`, so both keys
+        # have to count here - filtering on `translation` alone silently discarded
+        # every plural entry before it reached the loop below.
+        def wanted(payload):
+            return bool(payload.get('translation') or payload.get('translations'))
+
         regular = {e['msgid']: e for e in self.translations_data.get('entries', [])
-                   if e.get('translation')}
+                   if wanted(e)}
         fuzzy = {e['msgid']: e for e in self.translations_data.get('fuzzy_entries', [])
-                 if e.get('translation')}
+                 if wanted(e)}
 
         for entry in entries:
             if entry.obsolete or not entry.msgid:
@@ -73,6 +81,11 @@ class PoUpdater:
 def build_translations_data_from_dict(locale, dict_file, po_file, force=False):
     """Turn a flat {msgid: translation} dict into the extracted-JSON shape.
 
+    A plural entry's value must be a {"0": form, "1": form, ...} map, one key per
+    form the locale declares. A bare string there is rejected rather than skipped:
+    silently ignoring it is how 314 plural forms stayed in English through every
+    earlier translation pass.
+
     Only entries that still need translating are filled. That includes entries whose
     msgstr merely echoes the English msgid, not only those with an empty msgstr.
     """
@@ -80,18 +93,46 @@ def build_translations_data_from_dict(locale, dict_file, po_file, force=False):
         trans_dict = json.load(fh)
 
     data = {'locale': locale, 'entries': [], 'fuzzy_entries': []}
+    entries = poutil.parse(po_file)
+    rule = poutil.header_plural_rule(entries)
+    nplurals = poutil.plural_spec(rule)[0] if rule else None
+    rejected = []
 
-    for entry in poutil.parse(po_file):
+    for entry in entries:
         if entry.obsolete or not entry.msgid or entry.msgid not in trans_dict:
             continue
         if not (force or poutil.is_untranslated(entry, locale) or entry.is_fuzzy):
             continue
-        payload = {'msgid': entry.msgid, 'translation': trans_dict[entry.msgid]}
+        value = trans_dict[entry.msgid]
+        payload = {'msgid': entry.msgid}
+        if entry.msgid_plural:
+            if not isinstance(value, dict):
+                rejected.append((entry.msgid, 'plural entry needs a {index: form} map, '
+                                              'not a single string'))
+                continue
+            want = {str(i) for i in range(nplurals)} if nplurals else set(value)
+            if {str(k) for k in value} != want:
+                rejected.append((entry.msgid,
+                                 f'has forms {sorted(value)}, locale declares {sorted(want)}'))
+                continue
+            payload['msgid_plural'] = entry.msgid_plural
+            payload['translations'] = {str(k): v for k, v in value.items()}
+        elif isinstance(value, dict):
+            rejected.append((entry.msgid, 'singular entry given a {index: form} map'))
+            continue
+        else:
+            payload['translation'] = value
         if entry.is_fuzzy:
             payload['current_translation'] = entry.msgstr
             data['fuzzy_entries'].append(payload)
         else:
             data['entries'].append(payload)
+
+    if rejected:
+        print(f"\nERROR: {len(rejected)} dict entries cannot be applied:")
+        for msgid, why in rejected[:20]:
+            print(f"  {msgid[:70]!r}\n      {why}")
+        sys.exit(1)
 
     filled = len(data['entries']) + len(data['fuzzy_entries'])
     print(f"Matched {filled} entries from dict ({len(trans_dict) - filled} dict entries not needed)")

@@ -56,7 +56,7 @@ import poutil  # noqa: E402
 HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boilerplate',
         'repetition', 'mixedscript', 'ipliteral', 'nearmiss', 'literalmask',
         'protocoldowngrade', 'antonym_collision', 'fragment_punctuation',
-        'escape_artifact', 'unlocalized')
+        'escape_artifact', 'unlocalized', 'plural_forms')
 SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire', 'englishleak',
         'msgstr_collapse', 'negation_loss')
 
@@ -990,9 +990,37 @@ def check_entry(src, dst, locale):
     return hits
 
 
+def _plural_forms_faults(locale, entries):
+    """Header rule disagreeing with plural_forms.json, or a wrong form count.
+
+    A catalogue whose header says two forms cannot hold the third form its
+    language needs, and gettext picks by index - so a miscounted entry silently
+    renders the wrong string rather than failing.
+    """
+    faults = []
+    declared = poutil.header_plural_rule(entries)
+    if declared is None:
+        return [('Plural-Forms', 'header declares no Plural-Forms rule')]
+    try:
+        expected = poutil.plural_rule(locale.split('_')[0].lower())
+    except KeyError as exc:
+        return [('Plural-Forms', str(exc))]
+    if not poutil.same_plural_rule(declared, expected):
+        faults.append(('Plural-Forms', f'{declared} does not match {expected}'))
+    count = poutil.plural_spec(declared)[0]
+    for entry in entries:
+        if entry.obsolete or entry.is_header or not entry.msgid_plural:
+            continue
+        if sorted(entry.plurals) != list(range(count)):
+            faults.append((entry.msgid,
+                           f'has forms {sorted(entry.plurals)}, header declares {count}'))
+    return faults
+
+
 def check_locale(locale, examples=0):
+    entries = poutil.parse(poutil.po_path(locale))
     pairs = []
-    for entry in poutil.parse(poutil.po_path(locale)):
+    for entry in entries:
         if not entry.msgid or entry.obsolete or entry.is_header:
             continue
         views = _views(entry)
@@ -1039,6 +1067,11 @@ def check_locale(locale, examples=0):
             counts['crosswire'] += 1
             if len(samples['crosswire']) < examples:
                 samples['crosswire'].append((src_text, dst_text))
+
+    for where, detail in _plural_forms_faults(locale, entries):
+        counts['plural_forms'] += 1
+        if len(samples['plural_forms']) < examples:
+            samples['plural_forms'].append((where, detail))
 
     return len(pairs), counts, samples
 

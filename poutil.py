@@ -273,6 +273,105 @@ def locales():
     return sorted(d for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
 
 
+def plural_rule(iso):
+    """The Plural-Forms rule for an ISO-639 code, from plural_forms.json.
+
+    Raises KeyError for an unknown code. Callers must not substitute a default:
+    "nplurals=2" is wrong for every 3-, 4-, 5- and 6-form language, and silently
+    wrong headers are how a new catalogue ends up unable to hold its own plurals.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plural_forms.json')
+    with open(path, 'r', encoding='utf-8') as fh:
+        rules = json.load(fh)['rules']
+    if iso not in rules:
+        raise KeyError(f'no plural rule for {iso!r} in plural_forms.json - look it up in the '
+                       f'GNU gettext manual and add it there rather than guessing')
+    return rules[iso]
+
+
+def header_plural_rule(entries):
+    """The Plural-Forms rule a catalogue declares, or None.
+
+    Read this rather than matching the raw file: 12 catalogues wrap the header
+    across several quoted lines, which a single-line regex reads as absent.
+    """
+    header = next((e for e in entries if e.is_header), None)
+    if header is None:
+        return None
+    for line in header.msgstr.split('\n'):
+        if line.startswith('Plural-Forms:'):
+            return line.split(':', 1)[1].strip()
+    return None
+
+
+def _strip_outer_parens(expr):
+    """Drop parentheses that wrap the whole expression.
+
+    Several rules are written `(n==0 ? 0 : ...)`, which would otherwise hide
+    every `?` below the top level and defeat the scan.
+    """
+    expr = expr.strip()
+    while expr.startswith('(') and expr.endswith(')'):
+        depth = 0
+        for i, ch in enumerate(expr):
+            depth += (ch == '(') - (ch == ')')
+            if depth == 0 and i < len(expr) - 1:
+                return expr
+        expr = expr[1:-1].strip()
+    return expr
+
+
+def _c_ternary_to_python(expr):
+    """Rewrite C `cond ? a : b` as Python `a if cond else b`, innermost last.
+
+    `?:` is the loosest operator in both languages and `&&`/`||` map straight
+    onto `and`/`or`, so no other precedence work is needed.
+    """
+    expr = _strip_outer_parens(expr)
+    depth = 0
+    for i, ch in enumerate(expr):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif ch == '?' and depth == 0:
+            pending = 0
+            for j in range(i + 1, len(expr)):
+                if expr[j] == '(':
+                    depth += 1
+                elif expr[j] == ')':
+                    depth -= 1
+                elif depth == 0 and expr[j] == '?':
+                    pending += 1
+                elif depth == 0 and expr[j] == ':':
+                    if pending == 0:
+                        cond, yes, no = expr[:i], expr[i + 1:j], expr[j + 1:]
+                        return (f'(({_c_ternary_to_python(yes)}) if ({cond}) '
+                                f'else ({_c_ternary_to_python(no)}))')
+                    pending -= 1
+            break
+    return expr
+
+
+def plural_spec(rule):
+    """Return (nplurals, f) where f(n) is the form index the rule selects."""
+    count = int(re.search(r'nplurals\s*=\s*(\d+)', rule).group(1))
+    expr = re.search(r'plural\s*=\s*(.+?);?\s*$', rule).group(1).strip()
+    body = _c_ternary_to_python(expr).replace('&&', ' and ').replace('||', ' or ')
+    code = compile(body, '<plural-forms>', 'eval')
+    return count, lambda n: int(eval(code, {'__builtins__': {}}, {'n': n}))  # noqa: S307
+
+
+def same_plural_rule(a, b, limit=201):
+    """True when two rules select the same form for every n below limit.
+
+    Compare this way rather than by string equality: ru_RU and uk_UA ship two
+    different spellings of the identical Russian rule.
+    """
+    (count_a, pick_a), (count_b, pick_b) = plural_spec(a), plural_spec(b)
+    return count_a == count_b and all(pick_a(n) == pick_b(n) for n in range(limit))
+
+
 def load_exclusions():
     """Technical terms that are not expected to be translated."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'technical_exclusions.json')

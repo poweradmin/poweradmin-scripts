@@ -25,28 +25,6 @@ LOCALE_DIR = os.path.join(ROOT, 'locale')
 TEMPLATE = os.path.join(LOCALE_DIR, 'i18n-template-php.pot')
 ENGLISH_LOCALE = 'en_EN'
 
-# Fallback used when a locale header is missing Plural-Forms entirely
-LOCALE_PLURALS = {
-    'cs': 'nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;',
-    'de': 'nplurals=2; plural=(n != 1);',
-    'es': 'nplurals=2; plural=(n != 1);',
-    'fr': 'nplurals=2; plural=(n > 1);',
-    'id': 'nplurals=1; plural=0;',
-    'it': 'nplurals=2; plural=(n != 1);',
-    'ja': 'nplurals=1; plural=0;',
-    'ko': 'nplurals=1; plural=0;',
-    'lt': 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);',
-    'nb': 'nplurals=2; plural=(n != 1);',
-    'nl': 'nplurals=2; plural=(n != 1);',
-    'pl': 'nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
-    'pt': 'nplurals=2; plural=(n != 1);',
-    'ru': 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
-    'sv': 'nplurals=2; plural=(n != 1);',
-    'tr': 'nplurals=2; plural=(n != 1);',
-    'uk': 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);',
-    'vi': 'nplurals=1; plural=0;',
-    'zh': 'nplurals=1; plural=0;',
-}
 
 _MSGID_RE = re.compile(r'^msgid ("(?:.*?)"(?:\n".*?")*)', re.DOTALL | re.MULTILINE)
 _MSGSTR_RE = re.compile(r'^msgstr ("(?:.*?)"(?:\n".*?")*)', re.DOTALL | re.MULTILINE)
@@ -248,8 +226,11 @@ def fill_english_fallbacks(po, english_trans):
 def fix_locale_header(po, locale):
     content = read(po)
     code = locale.split('_')[0].lower()
-    plural = LOCALE_PLURALS.get(code, 'nplurals=2; plural=(n != 1);')
     if 'Plural-Forms:' not in content:
+        # Deliberately unguarded: an unknown code must stop the merge rather than
+        # take a two-form default that is wrong for every 3-, 4-, 5- and 6-form
+        # language. Add the rule to plural_forms.json instead.
+        plural = poutil.plural_rule(code)
         content = re.sub(r'("Content-Transfer-Encoding: 8bit\\n")',
                          r'\1\n"Plural-Forms: ' + plural + r'\\n"', content)
     content = content.replace('"Language: en_EN\\n"', f'"Language: {code}\\n"')
