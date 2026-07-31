@@ -55,7 +55,8 @@ import poutil  # noqa: E402
 
 HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boilerplate',
         'repetition', 'mixedscript', 'ipliteral', 'nearmiss', 'literalmask',
-        'protocoldowngrade', 'antonym_collision', 'fragment_punctuation')
+        'protocoldowngrade', 'antonym_collision', 'fragment_punctuation',
+        'escape_artifact', 'unlocalized')
 SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire', 'englishleak',
         'msgstr_collapse', 'negation_loss')
 
@@ -69,6 +70,23 @@ CJK = {'zh_CN', 'zh_TW', 'ja_JP', 'ko_KR'}
 # no way to tell a leaked English word from a cognate the language really uses.
 NONLATIN = {'ar_SA', 'bg_BG', 'el_GR', 'fa_IR', 'he_IL', 'hi_IN', 'ja_JP', 'ko_KR',
             'ru_RU', 'sr_RS', 'th_TH', 'uk_UA', 'zh_CN', 'zh_TW'}
+
+# Unicode name prefixes the writing system of each non-Latin catalogue uses. A
+# translation carrying none of them is either still English or, as ru_RU and
+# uk_UA both held for the zone-metadata strings, a Latin transliteration
+# ("Redaktirovat' metadannye") that reads as gibberish in the running UI.
+SCRIPT_OF = {
+    'ar_SA': ('ARABIC',), 'fa_IR': ('ARABIC',),
+    'he_IL': ('HEBREW',), 'el_GR': ('GREEK',),
+    'bg_BG': ('CYRILLIC',), 'ru_RU': ('CYRILLIC',),
+    'uk_UA': ('CYRILLIC',), 'sr_RS': ('CYRILLIC',),
+    'hi_IN': ('DEVANAGARI',), 'th_TH': ('THAI',),
+    'ja_JP': ('CJK', 'HIRAGANA', 'KATAKANA'), 'ko_KR': ('HANGUL', 'CJK'),
+    'zh_CN': ('CJK',), 'zh_TW': ('CJK',),
+}
+# Words that stay Latin in every catalogue, so a msgid built only from them
+# needs no target-script character: "API URL" is a legitimate "URL API".
+SCRIPTLESS = re.compile(r'^(?:[A-Z0-9]{2,}|\W+|\d+)$')
 
 # Flags, width and precision are part of the spec: "0x%04X" broken into "0x% 4X"
 # is a real defect that a bare "%[sdfucxXob]" pattern reads as no placeholder at all.
@@ -676,6 +694,43 @@ def _mixes_scripts(word):
     return 'LATIN' in found and bool(found & {'GREEK', 'CYRILLIC'})
 
 
+def _unlocalized(src, dst, locale):
+    """True when a non-Latin catalogue renders prose without its own script.
+
+    Requires two ordinary words in the source, so acronym-only labels and bare
+    code samples do not fire. Note this catches what `is_untranslated` cannot:
+    a transliteration differs from the msgid, so the echo test reads it as
+    translated.
+    """
+    scripts = SCRIPT_OF.get(locale)
+    if not scripts or not dst.strip():
+        return False
+    # Markup and tokens are copied through verbatim, so words inside them are
+    # not prose the translator was ever asked to render.
+    prose = TOKEN.sub(' ', TAG.sub(' ', src))
+    words = [w for w in LATINWORD.findall(prose) if not SCRIPTLESS.match(w)]
+    if len(words) < 2:
+        return False
+    for ch in dst:
+        try:
+            name = unicodedata.name(ch)
+        except ValueError:
+            continue
+        if name.startswith(scripts):
+            return False
+    return True
+
+
+def _escape_artifact(src, dst):
+    """True when the translation carries a backslash the source does not.
+
+    A quote inside a .po string is always written `\\"`, so a translation that
+    went through one escaping round too many stores `\\\\"` and prints a literal
+    backslash to the user. Found 16 such entries each in zh_CN and zh_TW.
+    """
+    return '\\"' in dst and '\\"' not in src
+
+
 def _en_words(text):
     return [w.lower() for w in ENWORD.findall(text)]
 
@@ -902,6 +957,10 @@ def check_entry(src, dst, locale):
         hits.append('ipliteral')
     if _fragment_punctuation(src, dst):
         hits.append('fragment_punctuation')
+    if _escape_artifact(src, dst):
+        hits.append('escape_artifact')
+    if _unlocalized(src, dst, locale):
+        hits.append('unlocalized')
 
     words = dst.split()
     if len(words) >= 6:

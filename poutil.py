@@ -303,7 +303,14 @@ def is_untranslated(entry, locale=None):
     if entry.obsolete or entry.is_header or not entry.msgid:
         return False
     if entry.msgid_plural:
-        return not all(entry.plurals.get(n) for n in entry.plurals) or not entry.plurals
+        # The echo rule has to reach plural forms too. Without it a form holding
+        # the raw English reads as translated because it is merely non-empty,
+        # which is how 314 of them survived every earlier catalogue pass.
+        if not entry.plurals or not all(entry.plurals.get(n) for n in entry.plurals):
+            return True
+        if locale == 'en_EN':
+            return False
+        return any(v in (entry.msgid, entry.msgid_plural) for v in entry.plurals.values())
     if not entry.msgstr:
         return True
     if locale == 'en_EN':
