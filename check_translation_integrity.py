@@ -95,6 +95,15 @@ SCRIPTLESS = re.compile(r'^(?:[A-Z0-9]{2,}|\W+|\d+)$')
 SPEC = r'[-+#0]*\d*(?:\.\d+)?[sdfucxXobeEgG]'
 PRINTF = re.compile(rf'%(?:\d+\$)?{SPEC}|%%')
 LEAK = re.compile(rf'%(?:\d+\$)?{SPEC}[A-Za-z]')
+
+
+def _has_leak(text):
+    """An escaped %% is a literal percent sign, never a placeholder.
+
+    Languages that suffix percentages (hu_HU "100%%-ot", tr_TR "%%50'si") would
+    otherwise read the second % as a spec and flag the suffix as a glued letter.
+    """
+    return bool(LEAK.search(text.replace('%%', '\x00\x00')))
 # Real markup only. Angle brackets are also used for metavariables such as
 # <priority> or <hash>._openpgpkey.<domain>, which translators legitimately
 # render in the target language - matching those would be almost all noise.
@@ -921,7 +930,7 @@ def check_entry(src, dst, locale):
 
     if _placeholders(src) != _placeholders(dst):
         hits.append('placeholder')
-    if LEAK.search(dst) and not LEAK.search(src):
+    if _has_leak(dst) and not _has_leak(src):
         hits.append('leak')
     if sorted(TAG.findall(src)) != sorted(TAG.findall(dst)):
         hits.append('tags')
