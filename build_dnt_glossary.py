@@ -405,6 +405,14 @@ ADVISORY = [
     ('role', 'native', 'lowercase prose form; the uppercase zone kind NATIVE is enforced'),
 ]
 
+# Locales where an otherwise-enforced literal has an established native form. Keep
+# these rare: the point of the literal list is that a translated acronym is damage
+# (ar_SA once rendered MFA as "Ministry of Foreign Affairs"), so an exception needs
+# a real acronym in that language, used consistently across the catalogue.
+EXCEPT = {
+    'MFA': {'fr_FR': 'AMF is the standard French acronym for authentification multifacteur'},
+}
+
 
 def main():
     ids = corpus()
@@ -423,6 +431,8 @@ def main():
         e = {'term': term, 'group': group, 'source': source}
         if note:
             e['note'] = note
+        if term in EXCEPT:
+            e['except_locales'] = EXCEPT[term]
         entries.append(e)
 
     for t in record_types():
@@ -471,6 +481,9 @@ def main():
                          '"key". All-lowercase terms are matched case-insensitively. Presence in '
                          'the translation is always checked case-insensitively, because a casing '
                          'change is not the defect class this catches.'),
+                'except_locales': ('A literal carrying this key is not enforced for the locales it '
+                                   'names, which have an established native form. The value is the '
+                                   'reason. Absent from almost every entry.'),
             },
             'regenerate': ('python3 scripts/build_dnt_glossary.py. '
                            'Record types come from the public const list in '
