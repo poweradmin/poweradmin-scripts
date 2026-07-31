@@ -112,10 +112,14 @@ def gate(msgid, new, old, locale, dnt):
     dropped = dnt_dropped(msgid, new, locale, dnt)
     if dropped:
         bad.append(f'do-not-translate literals dropped: {dropped}')
-    if old == msgid:
+    # old is None for plural forms: replacing an English form wholesale is the
+    # point there, whereas editing an English msgstr yields a mixed-language hybrid.
+    if old is not None and old == msgid:
         bad.append('entry is an untranslated English fallback')
     if not new.strip():
         bad.append('correction is empty')
+    if new == msgid:
+        bad.append('correction is still the English source')
     return bad
 
 
@@ -198,12 +202,23 @@ def apply_plurals(locale, path, entries, review_dir):
     rule = poutil.header_plural_rule(entries)
     count = poutil.plural_spec(rule)[0] if rule else None
 
-    fixes = {}
+    # Plural files carry no family ranking, so any two of them proposing different
+    # text for the same form is a disagreement between reviewers, not an override.
+    fixes, source_of = {}, {}
     for name in sorted(glob.glob(os.path.join(review_dir, f'OUT_{locale}_plr*.json'))):
         with open(name, encoding='utf-8') as fh:
             for msgid, forms in json.load(fh).items():
-                fixes.setdefault(msgid, {}).update(forms)
+                for index, form in forms.items():
+                    key = (msgid, str(index))
+                    if key in source_of and fixes[msgid][index] != form:
+                        raise SystemExit(
+                            f'CONFLICT: {os.path.basename(source_of[key])} and '
+                            f'{os.path.basename(name)} disagree on form {index} of '
+                            f'{msgid[:50]!r}')
+                    fixes.setdefault(msgid, {})[index] = form
+                    source_of[key] = name
 
+    dnt = load_dnt()
     problems, planned = [], []
     for msgid, forms in fixes.items():
         entry = by_id.get(msgid)
@@ -224,13 +239,7 @@ def apply_plurals(locale, path, entries, review_dir):
             # msgid_plural. Checking every form against msgid would reject correct
             # work wherever the two carry different placeholders.
             source = entry.msgid if i == 0 else entry.msgid_plural
-            bad = []
-            if placeholders(source) != placeholders(form):
-                bad.append(f'placeholders differ from {"msgid" if i == 0 else "msgid_plural"}')
-            if not form.strip():
-                bad.append('form is empty')
-            if form == source:
-                bad.append('form is still the English source')
+            bad = gate(source, form, None, locale, dnt)
             if bad:
                 problems.append((msgid, [f'[{i}] {reason}' for reason in bad]))
             elif entry.plurals.get(i) != form:
