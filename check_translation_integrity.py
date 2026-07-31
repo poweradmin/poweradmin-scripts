@@ -19,7 +19,8 @@ Classes
   trailing     msgid ends in whitespace but the translation does not (hard)
   boilerplate  text from outside this application, e.g. Twitter chrome (hard)
   repetition   a short token repeated until it is most of the string (hard)
-  mixedscript  one word mixes Latin with Greek or Cyrillic letters (hard)
+  mixedscript  a word mixes Latin with Greek or Cyrillic, or an acronym was
+               rewritten wholesale in the target script, e.g. DNS as "ДНС" (hard)
   ipliteral    an IPv4 example address differs from the source (hard)
   numerals     a number in the msgid is missing from the translation (soft)
   truncation   translation under half the source length, non-CJK only (soft)
@@ -95,6 +96,19 @@ RRTYPE = frozenset('''
     TXT SRV PTR MX
 '''.split())
 SIGNIFICANT = re.compile(r'(?<![A-Za-z0-9])(?:[A-Z][A-Za-z0-9]{2,}|\d+)(?![A-Za-z0-9])')
+# An acronym written in another script is a different string, so a Cyrillic
+# "ДНС" never matches the DNS it names. Two ways this happens: homoglyphs, which
+# look identical, and phonetic transliteration, which is what the import actually
+# produced. `mixedscript` sees neither - a fully converted acronym is not mixed.
+HOMOGLYPH = str.maketrans(
+    'АВСЕНІЈКМОРЅТУХΑΒΕΖΗΙΚΜΝΟΡΤΥΧ',
+    'ABCEHIJKMOPSTYXABEZHIKMNOPTYX',
+)
+TRANSLIT = str.maketrans(
+    'АБВГДЕЗИЙКЛМНОПРСТУФЫЭ',
+    'ABVGDEZIYKLMNOPRSTUFYE',
+)
+CAPRUN = re.compile(r'[А-ЯЁЀ-ЏΑ-Ω]{3,}')
 STOPWORDS = {'The', 'And', 'For', 'You', 'Not', 'This', 'That', 'Use', 'Using',
              'Please', 'Only', 'All', 'Each', 'New'}
 
@@ -106,6 +120,21 @@ def _placeholders(text):
 
 def _signature(text):
     return {t for t in SIGNIFICANT.findall(text) if t not in STOPWORDS}
+
+
+def _rescripted_acronym(src, dst):
+    """An acronym from the msgid rewritten in the target's own script.
+
+    Only reported when the Latin form is absent from the translation, and only
+    on an exact match after conversion, so a genuine target-language word in
+    capitals ("ВАЖНО" for IMPORTANT) can never collide with it.
+    """
+    wanted = {a for a in ACRONYM.findall(src) if a not in dst}
+    if not wanted:
+        return False
+    return any(run.translate(table) in wanted
+               for run in CAPRUN.findall(dst)
+               for table in (HOMOGLYPH, TRANSLIT))
 
 
 def _mixes_scripts(word):
@@ -148,7 +177,7 @@ def check_entry(entry, locale):
     if WIKICHROME.search(dst) and not WIKICHROME.search(src):
         hits.append('boilerplate')
 
-    if any(_mixes_scripts(w) for w in WORD.findall(dst)):
+    if any(_mixes_scripts(w) for w in WORD.findall(dst)) or _rescripted_acronym(src, dst):
         hits.append('mixedscript')
     src_ips, dst_ips = set(IPV4.findall(src)), set(IPV4.findall(dst))
     # Only when the translation carries addresses of its own: a translation
