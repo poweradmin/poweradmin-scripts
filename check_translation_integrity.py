@@ -72,6 +72,10 @@ BOILERPLATE = re.compile(
     r'|دانلود بازی|دانلود زیرنویس|دانلود فیلم|زیرنویس فارسی'
     r'|titrat u sollen', re.I
 )
+# Wiki edit-link chrome, e.g. Hebrew "[עריכת קוד מקור | עריכה]". Matched structurally
+# rather than by phrase so it covers any language: a bracketed group with a pipe
+# separator is wiki markup, never one of this application's [TOKEN]s.
+WIKICHROME = re.compile(r'\[[^\[\]]*\|[^\[\]]*\]')
 # Acronyms only: hyphen excluded so "DNS-Assistenten" yields DNS, and a 3-char
 # floor so uppercase emphasis words like ALL and KEY stay out.
 ACRONYM = re.compile(r'(?<![A-Za-z0-9])[A-Z][A-Z0-9]{2,}(?![A-Za-z0-9])')
@@ -140,6 +144,8 @@ def check_entry(entry, locale):
     if src != src.rstrip() and dst.rstrip() == dst:
         hits.append('trailing')
     if BOILERPLATE.search(dst) and not BOILERPLATE.search(src):
+        hits.append('boilerplate')
+    if WIKICHROME.search(dst) and not WIKICHROME.search(src):
         hits.append('boilerplate')
 
     if any(_mixes_scripts(w) for w in WORD.findall(dst)):
