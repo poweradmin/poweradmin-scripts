@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "purpose": "Agreed target wording per source term, for the term_consistency class in check_translation_integrity.py.",
+    "shape": "<source term, lowercased> -> <locale> -> [accepted renderings]. An entry whose msgid contains the term and whose msgstr contains none of the renderings is reported.",
+    "scope": "Only terms listed here are checked. Add a locale once its wording is settled; leaving it out is not a failure."
+  },
+  "metadata": {
+    "th_TH": ["เมตาดาต้า"]
+  },
+  "metadata kind": {
+    "da_DK": ["Metadatatype", "metadatatype"],
+    "th_TH": ["ประเภทเมตาดาต้า"]
+  }
+}

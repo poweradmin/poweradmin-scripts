@@ -36,6 +36,10 @@ Classes
   englishleak  an English word left untranslated inside a non-Latin script (soft)
   msgstr_collapse  distinct msgids came back sharing one translation (soft)
   negation_loss    the msgid negates something and the translation does not (soft)
+  diacritic    a word is spelt without its accents while the accented spelling
+               dominates the same catalogue, e.g. "metadonnees" in fr_FR (soft)
+  term_consistency  a source term is rendered with something other than the
+               agreed target wording from locale_terms.json (soft)
 
 Plural entries are checked too: poutil keeps their translations in `plurals` and
 leaves `msgstr` empty, so filtering on `msgstr` alone skipped 12 entries per
@@ -43,6 +47,7 @@ catalogue in every class. Each plural form is compared against `msgid_plural`.
 """
 import difflib
 import itertools
+import json
 import os
 import re
 import statistics
@@ -58,7 +63,7 @@ HARD = ('placeholder', 'leak', 'tags', 'tokens', 'identifiers', 'trailing', 'boi
         'protocoldowngrade', 'antonym_collision', 'fragment_punctuation',
         'escape_artifact', 'unlocalized', 'plural_forms')
 SOFT = ('numerals', 'truncation', 'rrtype', 'crosswire', 'englishleak',
-        'msgstr_collapse', 'negation_loss')
+        'msgstr_collapse', 'negation_loss', 'diacritic', 'term_consistency')
 
 # Chinese, Japanese and Korean are far more compact than English, so the length
 # ratio that finds dropped clauses elsewhere flags healthy text here.
@@ -856,6 +861,155 @@ def _same_word(x, y):
     return long_.startswith(short) and len(long_) - len(short) <= 3
 
 
+def _load_json(name, default):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    if not os.path.exists(path):
+        return default
+    with open(path, encoding='utf-8') as fh:
+        return json.load(fh)
+
+
+DNT_LITERALS = {e['term'] for e in _load_json('dnt_glossary.json', {}).get('literal', [])}
+# term -> locale -> accepted renderings. Only terms listed here are checked, so
+# an empty file simply turns term_consistency off.
+LOCALE_TERMS = _load_json('locale_terms.json', {})
+
+ACCENT_WORD = re.compile(r"[^\W\d_]{3,}", re.UNICODE)
+
+
+def _deaccent(word):
+    """The word with every combining mark stripped, casefolded."""
+    stripped = ''.join(c for c in unicodedata.normalize('NFD', word)
+                       if not unicodedata.combining(c))
+    return stripped.casefold()
+
+
+# German-style transliteration, where the mark becomes a letter rather than
+# being dropped. Checked separately from accent stripping because "fuer" and
+# "für" do not share a deaccented form.
+TRANSLIT = (('ä', 'ae'), ('ö', 'oe'), ('ü', 'ue'), ('ß', 'ss'),
+            ('Ä', 'Ae'), ('Ö', 'Oe'), ('Ü', 'Ue'), ('å', 'aa'), ('Å', 'Aa'))
+
+
+def _translit(word):
+    for mark, plain in TRANSLIT:
+        word = word.replace(mark, plain)
+    return word.casefold()
+
+
+def _diacritic_hits(heads, locale):
+    """Words spelt without their marks, where the catalogue spells them with
+    marks elsewhere. Covers dropped accents ("metadonnees") and German-style
+    transliteration ("fuer").
+
+    Frequency alone cannot do this. In fr_FR the damaged "metadonnees" occurs 11
+    times against 13 accented, so it reads as an accepted variant, while the
+    perfectly good French "Supprime" occurs once against 20 "supprimé" and reads
+    as damage. Nor can a dictionary-free rule tell "utilise" from "utilisé",
+    since both are real words.
+
+    So evidence comes from company. Pass one finds entries carrying two or more
+    bare words whose marked spelling overwhelmingly dominates the catalogue,
+    which is a combination clean prose does not produce. Pass two takes every
+    bare spelling those entries used and flags the rest of the catalogue for it.
+    A word that only ever appears alone in otherwise clean text is never learned,
+    which is what keeps "utilise" and "Supprime" out.
+
+    Soft: loanwords are legitimately spelt both ways in some languages.
+    """
+    variants = defaultdict(Counter)
+    for _, dst in heads:
+        for word in ACCENT_WORD.findall(_placeholder_mask(dst)):
+            variants[_deaccent(word)][word] += 1
+            if _translit(word) != word.casefold():
+                variants[_translit(word)][word] += 1
+
+    def counts_for(word):
+        seen = variants[_deaccent(word)] or variants[word.casefold()]
+        bare = sum(n for w, n in seen.items()
+                   if _deaccent(w) == w.casefold() and _translit(w) == w.casefold())
+        return bare, sum(seen.values()) - bare
+
+    def bare_words(src, dst):
+        out = set()
+        for word in ACCENT_WORD.findall(_placeholder_mask(dst)):
+            if _deaccent(word) != word.casefold() or _translit(word) != word.casefold():
+                continue
+            if word in DNT_LITERALS:
+                continue
+            # A word the English source also uses is a loanword or a product
+            # name, not a dropped mark.
+            if any(_deaccent(w) == _deaccent(word) for w in ACCENT_WORD.findall(src)):
+                continue
+            # The marked spelling has to be at least as common, or ordinary
+            # function words ("para", "tem") get learned off one damaged entry
+            # and drag in most of the catalogue.
+            bare, marked = counts_for(word)
+            if not marked or marked < bare:
+                continue
+            out.add(word)
+        return out
+
+    def strong(word):
+        """Marked spelling dominates enough that the bare one is hard to defend."""
+        bare, marked = counts_for(word)
+        return marked >= 5 and marked >= 5 * bare
+
+    def unmarked(dst):
+        """No marked character anywhere in the translation."""
+        return all(_deaccent(w) == w.casefold() and _translit(w) == w.casefold()
+                   for w in ACCENT_WORD.findall(dst))
+
+    # A string an MT pass stripped carries no marks at all, which is what
+    # separates it from ordinary prose in a densely accented language. Without
+    # this, Portuguese and Vietnamese seed on clean sentences - they have too
+    # many legitimate bare/marked word pairs - and the second pass then flags
+    # most of the catalogue.
+    per_entry = [(src, dst, bare_words(src, dst)) for src, dst in heads]
+    seeds = [words for _, dst, words in per_entry
+             if unmarked(dst) and sum(1 for w in words if strong(w)) >= 2]
+    damaged = {w.casefold() for words in seeds for w in words}
+
+    for src, dst, words in per_entry:
+        if any(w.casefold() in damaged for w in words):
+            yield src, dst
+
+
+def _placeholder_mask(text):
+    """Blank out placeholders, identifiers and paths so words inside them are
+    not read as prose."""
+    text = PRINTF.sub(' ', text)
+    text = IDENTIFIER.sub(' ', text)
+    text = TOKEN.sub(' ', text)
+    return TAG.sub(' ', text)
+
+
+def _term_hits(heads, locale):
+    """Entries that render a source term with something other than the agreed
+    wording for this locale.
+
+    Config driven rather than inferred: with no word alignment there is no way
+    to tell a synonym from a mistranslation mechanically, so the accepted
+    renderings live in locale_terms.json and the check is only as wide as that
+    file. Seeded from a translation review; extend it as terms get settled.
+
+    Soft, because a msgid can carry the term inside a literal that should stay
+    in English - a parenthetical list of table names, for instance - and no
+    mechanical test separates that from a missed translation.
+    """
+    for term, per_locale in LOCALE_TERMS.items():
+        if term.startswith('_'):
+            continue
+        accepted = per_locale.get(locale)
+        if not accepted:
+            continue
+        for src, dst in heads:
+            if term not in src.casefold():
+                continue
+            if not any(form in dst for form in accepted):
+                yield src, dst
+
+
 def _msgstr_collapses(heads, ratio):
     """Distinct msgids that came back sharing one translation.
 
@@ -1061,6 +1215,15 @@ def check_locale(locale, examples=0):
         counts['msgstr_collapse'] += 1
         if len(samples['msgstr_collapse']) < examples:
             samples['msgstr_collapse'].append((src, dst))
+
+    # Both need the whole catalogue: one keys on how this locale spells a word
+    # elsewhere, the other on an agreed rendering shared across entries.
+    for cls, hits in (('diacritic', _diacritic_hits(heads, locale)),
+                      ('term_consistency', _term_hits(heads, locale))):
+        for src, dst in hits:
+            counts[cls] += 1
+            if len(samples[cls]) < examples:
+                samples[cls].append((src, dst))
 
     # Cross-wire needs the whole file: a translation carrying none of its own
     # source's tokens but matching a nearby source's is evidence of a swap.
