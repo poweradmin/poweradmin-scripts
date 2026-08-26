@@ -255,8 +255,10 @@ strip_ansi() { sed $'s/\x1b\\[[0-9;]*[a-zA-Z]//g'; }
 
 extract_count() {
     # $1 = keyword (passed|failed|skipped|flaky), $2 = text
-    # Playwright omits zero-count lines; grep must not abort the set -e loop
-    echo "$2" | grep -oE "[0-9]+ $1" | grep -oE '^[0-9]+' | tail -1 || true
+    # Playwright omits zero-count lines; grep must not abort the set -e loop.
+    # Anchor on the summary lines ("  68 failed"), never on a test title that
+    # happens to contain "3 failed attempts".
+    echo "$2" | grep -oE "^[[:space:]]+[0-9]+ $1\b" | grep -oE '[0-9]+' | tail -1 || true
 }
 
 overall_fail=0
@@ -267,8 +269,10 @@ for i in "${!INST_PORT[@]}"; do
     logfile="$LOG_DIR/sweep-${INST_PORT[$i]}.log"
     rc="$(cat "$logfile.rc" 2>/dev/null || echo 1)"
     dur="$(cat "$logfile.dur" 2>/dev/null || echo 0)"
-    # Look at the tail where Playwright prints its run totals.
-    tail_txt="$(tail -n 40 "$logfile" 2>/dev/null | strip_ansi)"
+    # Read the whole log, not a fixed tail: Playwright prints "N failed" before
+    # the list of failed titles, so a run with many failures pushes that count
+    # far past any tail window and the row reports 0 failed on a failing run.
+    tail_txt="$(strip_ansi < "$logfile" 2>/dev/null)"
     passed="$(extract_count passed "$tail_txt")";  passed="${passed:-0}"
     failed="$(extract_count failed "$tail_txt")";  failed="${failed:-0}"
     skipped="$(extract_count skipped "$tail_txt")"; skipped="${skipped:-0}"
