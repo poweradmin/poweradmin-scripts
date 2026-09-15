@@ -176,6 +176,7 @@
     "2 - SHA-512 Hash",
     "Bits",
     "Bytes",
-    "Uptime"
+    "Uptime",
+    "Autoprimary"
   ]
 }
