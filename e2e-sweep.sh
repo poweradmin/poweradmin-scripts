@@ -153,7 +153,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     print_plan
     echo
     echo "Would, in order:"
-    echo "  1. Preflight GET http://localhost:<port>/login (200 expected) for each instance"
+    echo "  1. Preflight GET http://localhost:<port>/login (200 expected; /poweradmin/login for the subfolder instance)"
     echo "  2. .devcontainer/scripts/import-test-data.sh --clean   (reset DBs once)"
     echo "  3. ./scripts/toggle_install.sh                          (install -> install.old)"
     echo "  4. Launch parallel sweeps, one per instance, e.g.:"
@@ -192,7 +192,10 @@ echo ">> Preflight: checking instances are up"
 declare -a DEAD=()
 for i in "${!INST_PORT[@]}"; do
     port="${INST_PORT[$i]}"
-    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:$port/login" || true)"
+    login_path="/login"
+    # The subfolder instance is served under /poweradmin/, so bare /login is a 404 there
+    [[ "${INST_KIND[$i]}" == "subfolder" ]] && login_path="/poweradmin/login"
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:$port$login_path" || true)"
     if [[ "$code" == "200" ]]; then
         printf '   ok   %-12s port %s\n' "${INST_LABEL[$i]}" "$port"
     else
