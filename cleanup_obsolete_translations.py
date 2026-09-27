@@ -79,9 +79,11 @@ def find_obsolete(po_file, live_msgids):
     """Entries to drop: already marked obsolete, or absent from the template."""
     entries = poutil.parse(po_file)
     marked = [e for e in entries if e.obsolete and e.msgid]
-    stale = [e for e in entries
-             if e.msgid and not e.obsolete and not e.is_header
-             and e.msgid not in live_msgids]
+    # A module has no template of its own, so only gettext-marked entries can go
+    stale = [] if live_msgids is None else [
+        e for e in entries
+        if e.msgid and not e.obsolete and not e.is_header
+        and e.msgid not in live_msgids]
     return entries, marked, stale
 
 
