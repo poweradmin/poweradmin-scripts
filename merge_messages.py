@@ -209,7 +209,13 @@ def fill_english_fallbacks(po, english_trans):
             if msgstr.strip() == '""' and msgid in english_trans:
                 if '#, auto-english-fallback' not in entry:
                     entry = re.sub(r'#, fuzzy\n', '', entry)
-                    if '#:' in entry:
+                    existing = re.search(r'^#, (.*)$', entry, flags=re.MULTILINE)
+                    if existing:
+                        # gettext expects one flag line, so join rather than add a second
+                        entry = (entry[:existing.start()]
+                                 + '#, auto-english-fallback, ' + existing.group(1)
+                                 + entry[existing.end():])
+                    elif '#:' in entry:
                         entry = re.sub(r'(#:.*(\n#:.*)*)',
                                        r'\1\n#, auto-english-fallback', entry)
                     else:
