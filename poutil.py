@@ -22,17 +22,18 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _PLURAL_RE = re.compile(r'^msgstr\[(\d+)\]\s*(.*)$')
+_ESCAPE_RE = re.compile(r'\\(.)')
+_UNESCAPE = {'n': '\n', 't': '\t', 'r': '\r', '"': '"', '\\': '\\'}
+# merge_messages.py demotes translated obsolete entries to this comment form
+_OBSOLETE_COMMENT = '# OBSOLETE:'
 
 
 def extract_string(s):
     """Unquote and unescape one quoted .po string fragment."""
     s = s.strip()
     if s.startswith('"') and s.endswith('"') and len(s) >= 2:
-        s = s[1:-1]
-        s = s.replace('\\n', '\n')
-        s = s.replace('\\t', '\t')
-        s = s.replace('\\"', '"')
-        s = s.replace('\\\\', '\\')
+        # one pass, so the "\\" in "\\n" is not re-read as the start of "\n"
+        s = _ESCAPE_RE.sub(lambda m: _UNESCAPE.get(m.group(1), m.group(0)), s[1:-1])
     return s
 
 
@@ -41,7 +42,8 @@ def format_string(text):
     return (text.replace('\\', '\\\\')
                 .replace('"', '\\"')
                 .replace('\n', '\\n')
-                .replace('\t', '\\t'))
+                .replace('\t', '\\t')
+                .replace('\r', '\\r'))
 
 
 class Entry:
@@ -155,13 +157,29 @@ class Entry:
         return head + '\n' + body if head else body
 
 
+def _obsolete_body(lines):
+    """Strip the `#~` or `# OBSOLETE:` prefix so an obsolete block parses like a
+    live one. Returns None for a block that is not obsolete."""
+    if any(line.startswith('#~') for line in lines):
+        prefix = '#~'
+    elif any(line.startswith(_OBSOLETE_COMMENT) for line in lines):
+        prefix = _OBSOLETE_COMMENT
+    else:
+        return None
+    return [line[len(prefix):].lstrip() if line.startswith(prefix) else line
+            for line in lines]
+
+
 def _parse_block(raw, sep):
     entry = Entry(raw, sep)
     lines = raw.split('\n')
 
-    if any(line.startswith('#~') for line in lines):
+    body = _obsolete_body(lines)
+    if body is not None:
+        # msgid is filled in so cleanup can match it; render() still returns the
+        # raw block, since no raw line starts with `msgstr`
         entry.obsolete = True
-        return entry
+        lines = body
 
     def collect(first, start):
         """Join a quoted value with its continuation lines. Returns (text, next_index)."""
