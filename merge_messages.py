@@ -14,7 +14,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,6 +23,13 @@ ROOT = poutil.ROOT
 LOCALE_DIR = os.path.join(ROOT, 'locale')
 TEMPLATE = os.path.join(LOCALE_DIR, 'i18n-template-php.pot')
 ENGLISH_LOCALE = 'en_EN'
+# A regenerated template losing more than this share of msgids is treated as a
+# broken extraction rather than a real cleanup.
+MAX_TEMPLATE_LOSS = 0.20
+
+
+class MergeError(Exception):
+    """A gettext step failed; the caller restores backups and exits non-zero."""
 
 
 _MSGID_RE = re.compile(r'^msgid ("(?:.*?)"(?:\n".*?")*)', re.DOTALL | re.MULTILINE)
@@ -48,6 +54,16 @@ def write(path, text):
         fh.write(text)
 
 
+def _is_obsolete_block(entry):
+    return any(line.startswith('#~') for line in entry.split('\n'))
+
+
+def _has_translation(entry):
+    """True when any msgstr form of an obsolete block is non-empty."""
+    parsed = poutil.parse_string(entry)[0]
+    return bool(parsed.msgstr.strip()) or any(v.strip() for v in parsed.plurals.values())
+
+
 def cleanup_obsolete(po_file):
     """Keep obsolete entries that still carry a translation, drop the empty ones."""
     print(f'  - Reviewing obsolete translations in {po_file}')
@@ -63,9 +79,8 @@ def cleanup_obsolete(po_file):
     kept = removed = 0
     out = [header + '\n\n']
     for entry in entries:
-        if '#~' in entry:
-            m = re.search(r'#~ msgstr "(.+?)"', entry, re.DOTALL)
-            if m and m.group(1).strip():
+        if _is_obsolete_block(entry):
+            if _has_translation(entry):
                 entry = re.sub(r'^#~ ', '# OBSOLETE: ', entry, flags=re.MULTILINE)
                 out.append(entry + '\n\n')
                 kept += 1
@@ -80,17 +95,39 @@ def cleanup_obsolete(po_file):
     print(f"    File now has {read(po_file).count('msgid')} total entries")
 
 
+def template_msgid_count(path):
+    return sum(1 for e in poutil.parse(path)
+               if e.msgid and not e.obsolete and not e.is_header)
+
+
 def regenerate_template():
+    previous = None
+    previous_count = 0
+    if os.path.isfile(TEMPLATE):
+        previous = TEMPLATE + '.prev'
+        shutil.copyfile(TEMPLATE, previous)
+        previous_count = template_msgid_count(previous)
+
+    def refuse(message):
+        if previous:
+            os.replace(previous, TEMPLATE)
+            message += ' (previous template restored)'
+        raise MergeError(message)
+
     print('Regenerating template file with extract_strings.py...')
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'extract_strings.py')
-    subprocess.run([sys.executable, script], cwd=ROOT, check=False)
+    result = subprocess.run([sys.executable, script], cwd=ROOT, check=False)
+    if result.returncode != 0:
+        refuse(f'extract_strings.py failed (exit {result.returncode})')
+    if not os.path.isfile(TEMPLATE):
+        refuse(f'Template file not found: {TEMPLATE}')
 
     print('Deduplicating template file with msguniq...')
-    result = run(['msguniq', '--force-po', TEMPLATE])
-    if result.returncode == 0:
-        write(TEMPLATE, result.stdout)
-    else:
-        print('Warning: msguniq failed')
+    uniq = TEMPLATE + '.uniq'
+    result = run(['msguniq', '--force-po', TEMPLATE, '-o', uniq])
+    if result.returncode != 0:
+        refuse(f'msguniq failed: {result.stderr.strip()}')
+    os.replace(uniq, TEMPLATE)
 
     print('Fixing any potential syntax issues in template file...')
     if not valid(TEMPLATE):
@@ -101,6 +138,16 @@ def regenerate_template():
                        if line.startswith('msgid') and line != 'msgid ""'})
         body = ''.join(f'{m}\nmsgstr ""\n\n' for m in seen)
         write(TEMPLATE, header + '\n' + body)
+
+    count = template_msgid_count(TEMPLATE)
+    if count == 0:
+        refuse('Regenerated template has no msgids')
+    if previous_count and count < previous_count * (1 - MAX_TEMPLATE_LOSS):
+        refuse(f'Regenerated template lost too many msgids ({previous_count} -> {count}, '
+               f'limit {int(MAX_TEMPLATE_LOSS * 100)}%)')
+    if previous:
+        os.remove(previous)
+    print(f'Template has {count} msgids (previously {previous_count})')
 
 
 def english_translation_map(po_file):
@@ -140,16 +187,24 @@ def english_translation_map(po_file):
 def update_english():
     messages_dir = os.path.join(LOCALE_DIR, ENGLISH_LOCALE, 'LC_MESSAGES')
     if not os.path.isdir(messages_dir):
-        print(f'Error: English locale directory {messages_dir} not found', file=sys.stderr)
-        sys.exit(1)
+        raise MergeError(f'English locale directory {messages_dir} not found')
 
     po = os.path.join(messages_dir, 'messages.po')
     bak = po + '.bak'
     shutil.copyfile(po, bak)
     print('  - Preserving existing English translations and adding new entries')
 
+    def fail(message):
+        for leftover in (po + '.merged', po + '.msgen', po + '.new', po + '.fixed'):
+            if os.path.isfile(leftover):
+                os.remove(leftover)
+        os.replace(bak, po)
+        raise MergeError(f'{message} ({ENGLISH_LOCALE} restored from backup)')
+
     merged = po + '.merged'
-    run(['msgmerge', '--no-fuzzy-matching', '--quiet', po, TEMPLATE, '-o', merged])
+    result = run(['msgmerge', '--no-fuzzy-matching', '--quiet', po, TEMPLATE, '-o', merged])
+    if result.returncode != 0:
+        fail(f'msgmerge failed: {result.stderr.strip()}')
 
     print('  - Using msgen to create English translations for empty entries only...')
     msgen_out = po + '.msgen'
@@ -174,8 +229,10 @@ def update_english():
             print('  - Fixed with msgcat')
         else:
             print('  - msgcat failed, creating fresh file from template...')
-            run(['msginit', '--no-translator', f'--locale={ENGLISH_LOCALE}',
-                 f'--input={TEMPLATE}', f'--output={po}'])
+            result = run(['msginit', '--no-translator', f'--locale={ENGLISH_LOCALE}',
+                          f'--input={TEMPLATE}', f'--output={po}'])
+            if result.returncode != 0:
+                fail(f'msginit failed: {result.stderr.strip()}')
 
     cleanup_obsolete(po)
     print('  - English translations preserved and new entries added')
@@ -247,15 +304,20 @@ def update_locale(locale, english_trans):
     print(f'Updating {locale} locale')
     messages_dir = os.path.join(LOCALE_DIR, locale, 'LC_MESSAGES')
     if not os.path.isdir(messages_dir):
-        print(f'Error: Directory {messages_dir} not found', file=sys.stderr)
-        sys.exit(1)
+        raise MergeError(f'Directory {messages_dir} not found')
 
     po = os.path.join(messages_dir, 'messages.po')
     bak = po + '.bak'
     shutil.copyfile(po, bak)
 
     tmp = po + '.tmp'
-    run(['msgmerge', '--no-fuzzy-matching', '--quiet', po, TEMPLATE, '-o', tmp])
+    result = run(['msgmerge', '--no-fuzzy-matching', '--quiet', po, TEMPLATE, '-o', tmp])
+    if result.returncode != 0 or not os.path.isfile(tmp):
+        if os.path.isfile(tmp):
+            os.remove(tmp)
+        os.replace(bak, po)
+        raise MergeError(f'msgmerge failed for {locale} (restored from backup): '
+                         f'{result.stderr.strip()}')
     os.replace(tmp, po)
 
     filled = fill_english_fallbacks(po, english_trans)
@@ -292,17 +354,23 @@ def update_locale(locale, english_trans):
 def main():
     if not os.path.isdir(LOCALE_DIR):
         print(f'Error: Locale directory not found: {LOCALE_DIR}', file=sys.stderr)
-        sys.exit(1)
+        return 1
 
-    for tool in ('msgmerge', 'msgen', 'msgcat', 'msgattrib', 'msguniq'):
+    for tool in ('msgmerge', 'msgen', 'msgcat', 'msgattrib', 'msguniq',
+                 'xgettext', 'msgfmt', 'msginit'):
         if shutil.which(tool) is None:
             print(f'Error: {tool} not found on PATH', file=sys.stderr)
-            sys.exit(1)
+            return 1
 
+    try:
+        return merge_all()
+    except MergeError as exc:
+        print(f'Error: {exc}', file=sys.stderr)
+        return 1
+
+
+def merge_all():
     regenerate_template()
-    if not os.path.isfile(TEMPLATE):
-        print(f'Error: Template file not found: {TEMPLATE}', file=sys.stderr)
-        sys.exit(1)
 
     print(f'Updating {ENGLISH_LOCALE} locale (ensuring matching translations)')
     english_po = update_english()
@@ -323,7 +391,8 @@ def main():
     print('')
     print("Entries that were empty and filled with English translations are marked with '#, auto-english-fallback'.")
     print('You can find them using grep: grep -r "auto-english-fallback" locale/')
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

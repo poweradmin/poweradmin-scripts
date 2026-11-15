@@ -22,6 +22,10 @@ import poutil  # noqa: E402
 
 ROOT = poutil.ROOT
 
+
+class ExtractError(Exception):
+    """A gettext tool failed; the template must not be replaced."""
+
 CODE_DIR = 'lib'
 TEMPLATES_DIR = 'templates'
 MODULE_TEMPLATES_DIR = 'lib/Module'
@@ -80,13 +84,16 @@ def xgettext_php(root, dest, ver):
     files = find_files(root, ['-name', '*.php'])
     if not files:
         return False
-    subprocess.run([
+    result = subprocess.run([
         'xgettext', '--no-wrap', '-L', 'PHP',
         '--copyright-holder=Poweradmin Development Team',
         f'--msgid-bugs-address={BUGS_ADDRESS}',
         '-o', dest, '--package-name=Poweradmin',
         f'--package-version={ver}', '--from-code=UTF-8',
-    ] + files, cwd=ROOT, check=False)
+    ] + files, cwd=ROOT, check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise ExtractError(f'xgettext failed on {root} (exit {result.returncode}): '
+                           f'{result.stderr.strip()}')
     return os.path.isfile(dest)
 
 
@@ -95,9 +102,12 @@ def fix_pot_header(path, year):
     if not os.path.isfile(path) or os.path.getsize(path) == 0:
         return
     with open(path, encoding='utf-8') as fh:
-        lines = fh.read().split('\n')
+        content = fh.read()
+    # Only the first block is the header; a msgid containing "PACKAGE" or
+    # "Language: " further down must stay untouched.
+    head, sep, rest = content.partition('\n\n')
     out = []
-    for line in lines:
+    for line in head.split('\n'):
         if 'Plural-Forms:' in line:
             continue
         line = line.replace('SOME DESCRIPTIVE TITLE', 'Poweradmin translation template')
@@ -107,7 +117,7 @@ def fix_pot_header(path, year):
         line = line.replace('CHARSET', 'UTF-8')
         out.append(line)
     with open(path, 'w', encoding='utf-8') as fh:
-        fh.write('\n'.join(out))
+        fh.write('\n'.join(out) + sep + rest)
 
 
 def extract_from_template(path):
@@ -143,7 +153,7 @@ def build_template_pot(dest, roots, ver, stamp):
     result = subprocess.run(['msguniq', tmp, '--force-po', '-o', dest],
                             capture_output=True, text=True)
     if result.returncode != 0:
-        shutil.copyfile(tmp, dest)
+        raise ExtractError(f'msguniq failed on {os.path.basename(tmp)}: {result.stderr.strip()}')
 
 
 def collect_records(source):
@@ -223,7 +233,8 @@ def main():
 
         output = os.path.join(ROOT, OUTPUT_POT)
         os.makedirs(os.path.dirname(output), exist_ok=True)
-        with open(output, 'w', encoding='utf-8') as fh:
+        staged = os.path.join(tmpdir, 'staged.pot')
+        with open(staged, 'w', encoding='utf-8') as fh:
             fh.write(
                 '# Poweradmin translation template.\n'
                 f'# Copyright (C) {year} Poweradmin Development Team\n'
@@ -237,12 +248,11 @@ def main():
                 fh.write(collect_records(pot))
 
         final = os.path.join(tmpdir, 'final.pot')
-        result = subprocess.run(['msguniq', output, '--output=' + final, '--force-po'],
+        result = subprocess.run(['msguniq', staged, '--output=' + final, '--force-po'],
                                 capture_output=True, text=True)
-        if result.returncode == 0:
-            shutil.copyfile(final, output)
-        else:
-            print('Warning: Failed to deduplicate the final POT file')
+        if result.returncode != 0:
+            raise ExtractError(f'msguniq failed on the final template: {result.stderr.strip()}')
+        shutil.copyfile(final, output)
 
         print('Template generation complete.')
     finally:
@@ -250,4 +260,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except ExtractError as exc:
+        print(f'Error: {exc}', file=sys.stderr)
+        sys.exit(1)
