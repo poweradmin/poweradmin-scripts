@@ -77,7 +77,7 @@ def main():
     print('-' * 8 + '-|-' + '-' * 6 + '-|-' + '-' * 7 + '-|-' + '-' * 6 + '-|-'
           + '-' * 8 + '-|-' + '-' * 8 + '-|-' + '-' * 6 + '-|-------')
 
-    sum_total = sum_real = sum_fallback = sum_identity = sum_orphan = 0
+    sum_total = sum_fallback = sum_identity = sum_orphan = 0
     complete = 0
     rows = 0
 
@@ -94,7 +94,6 @@ def main():
         print(f'{locale:<8} | {total:>6} | {filled:>7} | {real:>6} | {fallback:>8} | '
               f'{identity:>8} | {orphaned:>6} | {pct:5.1f}%{mark}')
         sum_total += total
-        sum_real += real
         sum_fallback += fallback
         sum_identity += identity
         sum_orphan += orphaned

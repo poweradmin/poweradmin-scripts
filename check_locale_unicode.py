@@ -3,9 +3,10 @@
 Find hidden-Unicode, mojibake, and MT-artifact characters in locale/*.po files.
 
 What it catches:
-  - Mojibake from UTF-8 mis-decoded as Latin-1 then re-encoded as UTF-8
-    (signature: 4-byte sequence `0xC3 [0x82-0x85] [0xC2|0xC3] [0x80-0xBF]`).
-    Example: bytes for `é` (0xC3 0xA9) become `Ã©` (0xC3 0x83 0xC2 0xA9).
+  - Mojibake from UTF-8 mis-decoded as Latin-1/cp1252 then re-encoded as UTF-8,
+    in any script (Cyrillic, Greek, Arabic, Hebrew, Vietnamese, Latin accents).
+    Example: `é` (bytes 0xC3 0xA9) becomes `Ã©`. A run is flagged only when
+    reversing it yields valid UTF-8.
   - Hidden Unicode characters that can hide text from reviewers or confuse
     tools (Renovate's "smuggled text" warning):
       - SHY                  U+00AD  soft hyphen
@@ -45,12 +46,66 @@ import glob
 import os
 import re
 import sys
+import unicodedata
 
 # --- mojibake detection ---------------------------------------------------
-# Ã/Â/Ä/Å are U+00C2..U+00C5, UTF-8 encoded as 0xC3 0x82..0xC3 0x85.
-# The second mojibake char is any byte 0x80-0xFF re-encoded as UTF-8,
-# which is `0xC2|0xC3` + `0x80-0xBF`.
-MOJIBAKE_BYTES = re.compile(rb"\xc3[\x82-\x85][\xc2\xc3][\x80-\xbf]")
+# UTF-8 text decoded as Latin-1/cp1252 and saved again as UTF-8 shows up as a
+# lead char (U+00C2-U+00F4) followed by 1-3 chars that stand for continuation
+# bytes 0x80-0xBF: U+0080-U+00BF, or the cp1252 punctuation that occupies
+# 0x80-0x9F ("\u00e2\u20ac\u2122" for a right quote).
+_CP1252_CONT = "".join(
+    ch for ch in map(chr, range(0x100, 0x2200))
+    if ch.encode("cp1252", "ignore") and 0x80 <= ch.encode("cp1252", "ignore")[0] <= 0xBF
+)
+_CONT = "[\u0080-\u00bf" + _CP1252_CONT + "]"
+MOJIBAKE_RE = re.compile(
+    "(?:[\u00c2-\u00df]" + _CONT + "|[\u00e0-\u00ef]" + _CONT + "{2}|[\u00f0-\u00f4]" + _CONT + "{3})"
+)
+
+
+def _unmangle(seq):
+    """The UTF-8 bytes the mojibake run came from, or None when it is not mojibake.
+
+    A run only counts when reversing it gives valid UTF-8 with no control
+    characters, so legitimate adjacent accented letters stay untouched.
+    """
+    try:
+        raw = b"".join(
+            ch.encode("cp1252") if ch.encode("cp1252", "ignore") else ch.encode("latin-1")
+            for ch in seq
+        )
+        fixed = raw.decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return None
+    if any(unicodedata.category(c) == "Cc" for c in fixed):
+        return None
+    # Legit pairs such as "ß«" (in »Fuß«) also reverse cleanly, but into scripts no
+    # shipped locale uses (NKo, IPA), so only accept a plausible result
+    if not all(_plausible(c) for c in fixed):
+        return None
+    return raw
+
+
+# Unicode blocks real translations in the shipped locales use
+_PLAUSIBLE_RANGES = (
+    (0x00A0, 0x024F),  # Latin-1 Supplement, Latin Extended-A/B
+    (0x0300, 0x036F),  # combining diacritics
+    (0x0370, 0x052F),  # Greek, Cyrillic
+    (0x0590, 0x06FF),  # Hebrew, Arabic
+    (0x0900, 0x097F),  # Devanagari
+    (0x0E00, 0x0E7F),  # Thai
+    (0x1E00, 0x1EFF),  # Latin Extended Additional (Vietnamese)
+    (0x2000, 0x214F),  # punctuation, currency, letterlike symbols
+    (0x3000, 0x9FFF),  # CJK
+    (0xAC00, 0xD7AF),  # Hangul
+    (0xFF00, 0xFFEF),  # fullwidth forms
+)
+
+
+def _plausible(ch):
+    cp = ord(ch)
+    return any(lo <= cp <= hi for lo, hi in _PLAUSIBLE_RANGES)
+
 
 # --- hidden-character detection -------------------------------------------
 HIDDEN_CATS = {
@@ -97,23 +152,15 @@ def is_mt_artifact_char(ch, locale):
     return False
 
 
-def find_mojibake(blob):
-    """Return list of (offset, line_no, four_byte_seq, repaired_two_bytes).
-
-    Filters false positives: if the 2-byte repair isn't itself valid UTF-8,
-    the source bytes weren't mojibake -- they were legitimate adjacent
-    characters that happened to fit the byte pattern (e.g. Finnish `Ää`).
-    """
+def find_mojibake(text):
+    """Return list of (char_offset, line_no, mojibake_bytes, repaired_bytes)."""
     out = []
-    for m in MOJIBAKE_BYTES.finditer(blob):
-        seq = m.group(0)
-        try:
-            repaired = seq.decode("utf-8").encode("latin-1")
-            repaired.decode("utf-8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
+    for m in MOJIBAKE_RE.finditer(text):
+        raw = _unmangle(m.group(0))
+        if raw is None:
             continue
-        line_no = blob.count(b"\n", 0, m.start()) + 1
-        out.append((m.start(), line_no, seq, repaired))
+        out.append((m.start(), text.count("\n", 0, m.start()) + 1,
+                    m.group(0).encode("utf-8"), raw))
     return out
 
 
@@ -171,17 +218,12 @@ def find_mt_artifacts(text, locale):
     return out
 
 
-def repair_mojibake(blob):
-    """Replace only sequences whose repair is itself valid UTF-8."""
+def repair_mojibake(text):
+    """Replace only runs whose reversal is itself valid UTF-8."""
     def repl(m):
-        seq = m.group(0)
-        try:
-            repaired = seq.decode("utf-8").encode("latin-1")
-            repaired.decode("utf-8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            return seq
-        return repaired
-    return MOJIBAKE_BYTES.sub(repl, blob)
+        raw = _unmangle(m.group(0))
+        return m.group(0) if raw is None else raw.decode("utf-8")
+    return MOJIBAKE_RE.sub(repl, text)
 
 
 def process_file(path, do_fix, quiet, check_mt):
@@ -194,7 +236,7 @@ def process_file(path, do_fix, quiet, check_mt):
         print(f"  {path}: NOT VALID UTF-8 ({e})")
         return 1, 0, 0, 0
 
-    moji = find_mojibake(blob)
+    moji = find_mojibake(text)
     hidden = find_hidden(text, locale)
     mt = find_mt_artifacts(text, locale) if check_mt else []
 
@@ -237,14 +279,9 @@ def process_file(path, do_fix, quiet, check_mt):
                 print(f"    ... and {len(mt)-5} more msgstrs")
 
     if do_fix and n_moji:
-        fixed = repair_mojibake(blob)
-        try:
-            fixed.decode("utf-8")
-        except UnicodeDecodeError as e:
-            print(f"  REFUSING to write {path}: repair produced invalid UTF-8 ({e})")
-            return 1, 0, 0, 0
+        fixed = repair_mojibake(text)
         with open(path, "wb") as fh:
-            fh.write(fixed)
+            fh.write(fixed.encode("utf-8"))
         if not quiet:
             print(f"  -> repaired {n_moji} mojibake sequences")
     return 0, n_moji, n_hidden, n_mt

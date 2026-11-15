@@ -887,12 +887,12 @@ def _deaccent(word):
 # German-style transliteration, where the mark becomes a letter rather than
 # being dropped. Checked separately from accent stripping because "fuer" and
 # "für" do not share a deaccented form.
-TRANSLIT = (('ä', 'ae'), ('ö', 'oe'), ('ü', 'ue'), ('ß', 'ss'),
-            ('Ä', 'Ae'), ('Ö', 'Oe'), ('Ü', 'Ue'), ('å', 'aa'), ('Å', 'Aa'))
+UMLAUT_TRANSLIT = (('ä', 'ae'), ('ö', 'oe'), ('ü', 'ue'), ('ß', 'ss'),
+                   ('Ä', 'Ae'), ('Ö', 'Oe'), ('Ü', 'Ue'), ('å', 'aa'), ('Å', 'Aa'))
 
 
 def _translit(word):
-    for mark, plain in TRANSLIT:
+    for mark, plain in UMLAUT_TRANSLIT:
         word = word.replace(mark, plain)
     return word.casefold()
 

@@ -15,11 +15,12 @@ import re
 import subprocess
 import sys
 
-ROOT = '/Users/edmondas/Projects/poweradmin'
-sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+SCRIPTS = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPTS)
 import poutil  # noqa: E402
 
-OUT = os.path.join(ROOT, 'scripts', 'dnt_glossary.json')
+ROOT = poutil.ROOT
+OUT = os.path.join(SCRIPTS, 'dnt_glossary.json')
 
 # Token boundary: '/', '\', '.' and '-' are part of a literal, not separators.
 # A leading '.' is allowed so `in-addr.arpa` is still seen inside
@@ -52,7 +53,8 @@ def corpus():
 
 # ------------------------------------------------------------- derived sources
 def record_types():
-    src = open(os.path.join(ROOT, 'lib/Domain/Model/RecordType.php')).read()
+    with open(os.path.join(ROOT, 'lib/Domain/Model/RecordType.php'), encoding='utf-8') as fh:
+        src = fh.read()
     return sorted(set(re.findall(r"^\s*public const ([A-Z][A-Z0-9]*) = '\1';",
                                  src, re.M)))
 
@@ -501,7 +503,7 @@ def main():
         'literal': entries,
         'advisory': adv,
     }
-    with open(OUT, 'w') as fh:
+    with open(OUT, 'w', encoding='utf-8') as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
         fh.write('\n')
 

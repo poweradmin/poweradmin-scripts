@@ -2,12 +2,14 @@
 """Apply LLM-curated regex corrections to msgstr lines of a .po file.
 
 Usage: python3 apply_locale_corrections.py <locale>
+           [--identifiers|--placeholders|--trailing|--pitfalls] [--dry-run]
 Example: python3 apply_locale_corrections.py da_DK
 
 Corrections fix systematic Argos MT mistakes (wrong word sense, broken spacing,
 inconsistent DNS terminology). The dicts here are hand-curated based on review
 of actual MT output - each entry has a reason.
 """
+import argparse
 import json
 import os
 import re
@@ -587,6 +589,19 @@ def apply_corrections(po_path: str, subs, dry_run: bool = False):
     return changes
 
 
+def _finish(po_path, entries, label, changes, preview, dry_run):
+    """Write the entries, or with dry_run print each change and leave the file."""
+    if dry_run:
+        for msgid, old, new in preview:
+            print(f"  {msgid[:70]!r}\n    - {old}\n    + {new}")
+        print(f"Would {label} in {changes} entries in {po_path}")
+        return changes
+    if changes:
+        poutil.write(po_path, entries)
+    print(f"{label.capitalize()} in {changes} entries in {po_path}")
+    return changes
+
+
 # Config keys, table names and file names. These are code: a translated or
 # de-underscored copy sends the user looking for something that does not exist.
 _IDENTIFIER = re.compile(
@@ -601,7 +616,7 @@ def _mangled_pattern(token):
     return re.escape(token).replace(r"_", r"[\s_]*").replace(r"\.", r"\s*\.\s*")
 
 
-def restore_identifiers(po_path: str):
+def restore_identifiers(po_path: str, dry_run: bool = False):
     """Rewrite identifiers whose separators were mangled back to the literal form.
 
     Only touches entries where the token survives intact apart from its separators.
@@ -610,7 +625,7 @@ def restore_identifiers(po_path: str):
     """
     entries = poutil.parse(po_path)
 
-    changes = 0
+    changes, preview = 0, []
     for entry in entries:
         if entry.obsolete or entry.is_header or not entry.msgid or not entry.msgstr:
             continue
@@ -624,13 +639,11 @@ def restore_identifiers(po_path: str):
             text = re.sub(_mangled_pattern(token), token, text, flags=re.IGNORECASE)
 
         if text != entry.msgstr:
+            preview.append((entry.msgid, entry.msgstr, text))
             entry.msgstr = text
             changes += 1
 
-    if changes:
-        poutil.write(po_path, entries)
-    print(f"Restored identifiers in {changes} entries in {po_path}")
-    return changes
+    return _finish(po_path, entries, "restore identifiers", changes, preview, dry_run)
 
 
 # The translator glued a stray capital Z (sometimes ZZ) onto placeholders, so
@@ -639,11 +652,11 @@ def restore_identifiers(po_path: str):
 _PLACEHOLDER_LEAK = re.compile(r"(%(?:\d+\$)?[sdfucxXob])Z+")
 
 
-def strip_placeholder_leaks(po_path: str):
+def strip_placeholder_leaks(po_path: str, dry_run: bool = False):
     """Remove stray letters the translator appended to printf placeholders."""
     entries = poutil.parse(po_path)
 
-    changes = 0
+    changes, preview = 0, []
     for entry in entries:
         if entry.obsolete or entry.is_header or not entry.msgid:
             continue
@@ -658,21 +671,20 @@ def strip_placeholder_leaks(po_path: str):
             for n in sorted(entry.plurals):
                 new = fix(entry.plurals[n])
                 if new != entry.plurals[n]:
+                    preview.append((entry.msgid, entry.plurals[n], new))
                     entry.set_plural(n, new)
                     changes += 1
         elif entry.msgstr:
             new = fix(entry.msgstr)
             if new != entry.msgstr:
+                preview.append((entry.msgid, entry.msgstr, new))
                 entry.msgstr = new
                 changes += 1
 
-    if changes:
-        poutil.write(po_path, entries)
-    print(f"Stripped placeholder leaks in {changes} entries in {po_path}")
-    return changes
+    return _finish(po_path, entries, "strip placeholder leaks", changes, preview, dry_run)
 
 
-def restore_trailing_whitespace(po_path: str):
+def restore_trailing_whitespace(po_path: str, dry_run: bool = False):
     """Put back trailing whitespace the translator dropped.
 
     These msgids end in ": " because the caller appends a detail string. Losing
@@ -681,7 +693,7 @@ def restore_trailing_whitespace(po_path: str):
     """
     entries = poutil.parse(po_path)
 
-    changes = 0
+    changes, preview = 0, []
     for entry in entries:
         if entry.obsolete or entry.is_header or not entry.msgid or not entry.msgstr:
             continue
@@ -692,40 +704,46 @@ def restore_trailing_whitespace(po_path: str):
         tail = entry.msgid[len(entry.msgid.rstrip()):]
         if not tail or entry.msgstr.endswith(tail):
             continue
-        entry.msgstr = entry.msgstr.rstrip() + tail
+        new = entry.msgstr.rstrip() + tail
+        preview.append((entry.msgid, entry.msgstr, new))
+        entry.msgstr = new
         changes += 1
 
-    if changes:
-        poutil.write(po_path, entries)
-    print(f"Restored trailing whitespace in {changes} entries in {po_path}")
-    return changes
+    return _finish(po_path, entries, "restore trailing whitespace", changes, preview, dry_run)
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <locale> "
-              "[--identifiers|--placeholders|--trailing|--pitfalls] [--dry-run]",
-              file=sys.stderr)
-        sys.exit(1)
-    locale = sys.argv[1]
-    flags = sys.argv[2:]
-    identifiers_only = "--identifiers" in flags
-    placeholders_only = "--placeholders" in flags
-    pitfalls_only = "--pitfalls" in flags
-    dry_run = "--dry-run" in flags
-    if not (identifiers_only or placeholders_only or pitfalls_only) \
-            and locale not in SUBS_BY_LOCALE:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("locale")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--identifiers", action="store_true",
+                      help="restore identifiers whose separators were mangled")
+    mode.add_argument("--placeholders", action="store_true",
+                      help="strip stray letters glued onto printf placeholders")
+    mode.add_argument("--trailing", action="store_true",
+                      help="restore trailing whitespace dropped from the source")
+    mode.add_argument("--pitfalls", action="store_true",
+                      help="apply the rules mined into locale_pitfalls.json")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print the changes without writing the catalogue")
+    args = parser.parse_args()
+
+    locale, dry_run = args.locale, args.dry_run
+    special = args.identifiers or args.placeholders or args.trailing or args.pitfalls
+    if not special and locale not in SUBS_BY_LOCALE:
         print(f"Unknown locale: {locale}", file=sys.stderr)
         sys.exit(1)
     po_path = os.path.join(ROOT, f"locale/{locale}/LC_MESSAGES/messages.po")
     if not os.path.exists(po_path):
         print(f"Not found: {po_path}", file=sys.stderr)
         sys.exit(1)
-    if identifiers_only:
-        restore_identifiers(po_path)
-    elif placeholders_only:
-        strip_placeholder_leaks(po_path)
-    elif pitfalls_only:
+    if args.identifiers:
+        restore_identifiers(po_path, dry_run=dry_run)
+    elif args.placeholders:
+        strip_placeholder_leaks(po_path, dry_run=dry_run)
+    elif args.trailing:
+        restore_trailing_whitespace(po_path, dry_run=dry_run)
+    elif args.pitfalls:
         subs = load_pitfall_subs(locale)
         if not subs:
             print(f"No pitfall rules for {locale}")

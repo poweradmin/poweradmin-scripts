@@ -30,18 +30,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import poutil  # noqa: E402
+# One definition of what counts as a placeholder, tag, identifier or IP, shared
+# with the checker the corrections are later judged by.
+from check_translation_integrity import (  # noqa: E402
+    IDENTIFIER, IPV4, TAG, TOKEN, _placeholders as placeholders)
 
-PRINTF = re.compile(r'%(?:\d+\$)?[sdfucxXob]|%%')
-TAG = re.compile(r'</?(?:code|strong|em|b|i|u|a|br|p|span|div|ul|ol|li|small|sup|sub)\b[^<>]*>',
-                 re.I)
-TOKEN = re.compile(r'\[[A-Z0-9_]+\]')
-IDENTIFIER = re.compile(
-    r'\b[a-z][a-z0-9]*(?:_[a-z0-9]+){1,}\b'
-    r'|\b(?:dns|api|misc|db|ldap|mail|pdns)\.[a-z_.]+\b'
-    r'|\b[\w-]+\.(?:php|html|twig|js|css|sql|dat|json|ya?ml|conf|ini)\b'
-)
-IPV4 = re.compile(r'(?<![0-9A-Za-z.])\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2})?'
-                  r'(?![0-9A-Za-z]|\.[0-9A-Za-z])')
 SLASH_SPACE = re.compile(r'\s*/\s*')
 
 # Pass families in application order. Each reviewed the catalogue as the earlier
@@ -67,10 +60,6 @@ def load_dnt():
                         0 if any(c.isupper() for c in e['term']) else re.I),
              set(e.get('except_locales', {})))
             for e in glossary['literal']]
-
-
-def placeholders(text):
-    return sorted(re.sub(r'\d+\$', '', p) for p in PRINTF.findall(text))
 
 
 def dnt_dropped(msgid, new, locale, dnt):
@@ -175,6 +164,10 @@ def apply_msgstr(locale, path, entries, review_dir):
         entry = by_id.get(msgid)
         if entry is None:
             problems.append((msgid, ['msgid not in catalogue']))
+        elif entry.msgid_plural:
+            # render() writes only msgstr[n] for a plural entry, so a msgstr
+            # assignment would be silently dropped.
+            problems.append((msgid, ['plural entry: use --plurals']))
         elif entry.msgstr != new:
             bad = gate(msgid, new, entry.msgstr, locale, dnt)
             if bad:
