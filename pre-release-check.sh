@@ -4,7 +4,7 @@
 # Description: Pre-release checklist - auto-detects branch and runs relevant checks
 # Usage: ./scripts/pre-release-check.sh [--fix]
 #
-# Works on all branches: release/3.x, release/4.0.x, release/4.1.x, master, develop
+# Works on all branches: release/3.x, release/4.2.x to release/4.5.x, master
 # Checks are adapted based on what files and features exist on the current branch.
 
 set -euo pipefail
@@ -40,6 +40,31 @@ done
 PASS=0
 FAIL=0
 WARN=0
+
+# Restore production vendor state on any exit once dev dependencies were installed,
+# and put the tracked .pot back if the run stops while it is regenerated.
+NEEDS_RESTORE=false
+POT_BACKUP=""
+POT_FILE="locale/i18n-template-php.pot"
+
+restore_production_state() {
+    set +e
+    if [[ -n "$POT_BACKUP" && -f "$POT_BACKUP" ]]; then
+        cp -p "$POT_BACKUP" "$POT_FILE"
+        rm -f "$POT_BACKUP"
+        POT_BACKUP=""
+    fi
+    if $NEEDS_RESTORE && command -v composer &> /dev/null; then
+        NEEDS_RESTORE=false
+        echo "Restoring production dependencies..."
+        composer install --no-dev --quiet 2>/dev/null
+        composer dump-autoload --optimize --quiet 2>/dev/null
+        git checkout -- vendor/composer/installed.php 2>/dev/null
+    fi
+}
+trap restore_production_state EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 pass() { PASS=$((PASS + 1)); echo "  [PASS] $1"; }
 fail() { FAIL=$((FAIL + 1)); echo "  [FAIL] $1"; }
@@ -79,7 +104,7 @@ echo ""
 echo "1. Branch and git state"
 
 case "$BRANCH" in
-    release/*|master|develop)
+    release/*|master)
         pass "On recognized branch ($BRANCH)" ;;
     *)
         warn "On unrecognized branch ($BRANCH)" ;;
@@ -92,14 +117,13 @@ else
 fi
 
 # Install dev dependencies for code quality checks
-NEEDS_RESTORE=false
 if command -v composer &> /dev/null && [[ -f composer.json ]]; then
     echo "  Installing dev dependencies..."
+    NEEDS_RESTORE=true
     composer install --quiet 2>/dev/null
     if [[ -d vendor/bin ]]; then
         chmod +x vendor/bin/* 2>/dev/null || true
     fi
-    NEEDS_RESTORE=true
 fi
 
 echo ""
@@ -198,22 +222,31 @@ if command -v msgfmt &> /dev/null; then
     fi
 
     # Check .pot is up to date (compare ignoring timestamps)
-    if [[ -x scripts/extract_strings.sh && -f locale/i18n-template-php.pot ]]; then
-        pot_before=$(grep -v "^\"POT-Creation-Date:" locale/i18n-template-php.pot | md5 -q 2>/dev/null || grep -v "^\"POT-Creation-Date:" locale/i18n-template-php.pot | md5sum | cut -d' ' -f1)
-        ./scripts/extract_strings.sh > /dev/null 2>&1
-        pot_after=$(grep -v "^\"POT-Creation-Date:" locale/i18n-template-php.pot | md5 -q 2>/dev/null || grep -v "^\"POT-Creation-Date:" locale/i18n-template-php.pot | md5sum | cut -d' ' -f1)
+    if [[ -f scripts/extract_strings.py && -f "$POT_FILE" ]] && command -v python3 &> /dev/null; then
+        # extract_strings.py rewrites the tracked .pot in place; keep a copy to restore from
+        POT_BACKUP=$(mktemp)
+        cp -p "$POT_FILE" "$POT_BACKUP"
+        pot_changed=false
 
-        if [[ "$pot_before" == "$pot_after" ]]; then
-            pass ".pot template is up to date"
-        else
-            fail ".pot template is outdated (run: ./scripts/extract_strings.sh)"
-            if $FIX_MODE; then
-                info "Fixed: .pot regenerated"
+        if python3 scripts/extract_strings.py > /dev/null 2>&1; then
+            if diff -q <(grep -v '^"POT-Creation-Date:' "$POT_BACKUP") <(grep -v '^"POT-Creation-Date:' "$POT_FILE") > /dev/null; then
+                pass ".pot template is up to date"
+            else
+                pot_changed=true
+                fail ".pot template is outdated (run: python3 scripts/extract_strings.py)"
             fi
+        else
+            warn "Could not regenerate .pot (python3 scripts/extract_strings.py failed; gettext tools installed?)"
         fi
 
-        # Restore original to avoid dirty tree from timestamp-only change
-        git checkout locale/i18n-template-php.pot 2>/dev/null || true
+        if $FIX_MODE && $pot_changed; then
+            info "Fixed: .pot regenerated and kept (review and commit $POT_FILE)"
+        else
+            # Never git checkout here: that would discard local edits to the .pot
+            cp -p "$POT_BACKUP" "$POT_FILE"
+        fi
+        rm -f "$POT_BACKUP"
+        POT_BACKUP=""
     fi
 
     # Check .po files are in sync with .pot template (no missing entries)
@@ -293,8 +326,14 @@ check_file_age() {
     local max_days="${4:-30}"
 
     if [[ -f "$file" ]]; then
-        file_date=$(stat -f "%Sm" -t "%Y-%m-%d" "$file" 2>/dev/null || stat -c "%y" "$file" 2>/dev/null | cut -d' ' -f1)
-        days_old=$(( ($(date +%s) - $(date -j -f "%Y-%m-%d" "$file_date" +%s 2>/dev/null || date -d "$file_date" +%s 2>/dev/null)) / 86400 ))
+        # Last commit time; mtime is always "now" after a fresh clone
+        local file_ts file_date
+        file_ts=$(git log -1 --format=%ct -- "$file" 2>/dev/null || true)
+        if [[ -z "$file_ts" ]]; then
+            file_ts=$(stat -c %Y "$file" 2>/dev/null || stat -f %m "$file")
+        fi
+        file_date=$(date -r "$file_ts" +%Y-%m-%d 2>/dev/null || date -d "@$file_ts" +%Y-%m-%d)
+        days_old=$(( ($(date +%s) - file_ts) / 86400 ))
 
         if [[ $days_old -lt $max_days ]]; then
             pass "$label is recent ($file_date)"
@@ -424,12 +463,7 @@ echo ""
 # -----------------------------------------------
 # Restore production state
 # -----------------------------------------------
-if $NEEDS_RESTORE && command -v composer &> /dev/null; then
-    echo "Restoring production dependencies..."
-    composer install --no-dev --quiet 2>/dev/null
-    composer dump-autoload --optimize --quiet 2>/dev/null
-    git checkout -- vendor/composer/installed.php 2>/dev/null || true
-fi
+restore_production_state
 
 echo ""
 

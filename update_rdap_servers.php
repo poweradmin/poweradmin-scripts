@@ -190,6 +190,15 @@ try {
 
     echo "Found " . count($ianaServers) . " TLDs in IANA bootstrap data\n\n";
 
+    // An empty or truncated response would otherwise delete every entry
+    $minExpected = (int) floor(count($existingServers) * 0.8);
+    if (count($ianaServers) === 0 || count($ianaServers) < $minExpected) {
+        throw new RuntimeException(
+            "IANA bootstrap data has only " . count($ianaServers) . " TLDs (existing: "
+            . count($existingServers) . ", minimum accepted: $minExpected); refusing to update"
+        );
+    }
+
     // Track changes
     $added = [];
     $updated = [];
@@ -273,7 +282,9 @@ try {
         $count = count($existingServers);
         $phpContent = "<?php\n\n/**\n * RDAP servers list\n *\n * Updated on $date - $count entries\n * Source: IANA RDAP Bootstrap (https://data.iana.org/rdap/dns.json)\n *\n * Do not edit manually - use scripts/update_rdap_servers.php to regenerate\n */\n\nreturn " . var_export($existingServers, true) . ";\n";
 
-        if (file_put_contents(RDAP_SERVERS_FILE, $phpContent) === false) {
+        $tmpFile = RDAP_SERVERS_FILE . '.tmp.' . getmypid();
+        if (file_put_contents($tmpFile, $phpContent) === false || !rename($tmpFile, RDAP_SERVERS_FILE)) {
+            @unlink($tmpFile);
             throw new RuntimeException("Failed to write RDAP servers file");
         }
 

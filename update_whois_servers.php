@@ -217,6 +217,15 @@ try {
     // Fetch TLD list from IANA
     $tlds = fetchTldList();
 
+    // A changed or truncated IANA page must not drive removals
+    $minExpected = (int) floor(count($existingServers) * 0.8);
+    if (count($tlds) === 0 || count($tlds) < $minExpected) {
+        throw new RuntimeException(
+            "IANA TLD list has only " . count($tlds) . " TLDs (existing entries: "
+            . count($existingServers) . ", minimum accepted: $minExpected); refusing to update"
+        );
+    }
+
     // Track changes
     $added = [];
     $updated = [];
@@ -366,7 +375,9 @@ try {
         $count = count($existingServers);
         $phpContent = "<?php\n\n/**\n * WHOIS servers list\n *\n * Updated on $date - $count entries\n * Source: IANA WHOIS database\n *\n * Do not edit manually - use scripts/update_whois_servers.php to regenerate\n */\n\nreturn " . var_export($existingServers, true) . ";\n";
 
-        if (file_put_contents(WHOIS_SERVERS_FILE, $phpContent) === false) {
+        $tmpFile = WHOIS_SERVERS_FILE . '.tmp.' . getmypid();
+        if (file_put_contents($tmpFile, $phpContent) === false || !rename($tmpFile, WHOIS_SERVERS_FILE)) {
+            @unlink($tmpFile);
             throw new RuntimeException("Failed to write WHOIS servers file");
         }
 

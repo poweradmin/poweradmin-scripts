@@ -24,26 +24,41 @@ cd "$PROJECT_ROOT" || { echo "Error: Failed to change to project root directory:
 
 OUTPUT_FILE="data/tlds.php"
 temp_file=$(mktemp)
-trap 'rm -f "$temp_file"' EXIT
+out_tmp=$(mktemp)
+trap 'rm -f "$temp_file" "$out_tmp"' EXIT
 
 echo "Downloading TLD list from IANA..."
-curl -sSL http://data.iana.org/TLD/tlds-alpha-by-domain.txt > "$temp_file"
+curl -fsSL https://data.iana.org/TLD/tlds-alpha-by-domain.txt -o "$temp_file"
+
+if [[ "$(head -n 1 "$temp_file")" != "# Version "* ]]; then
+    echo "Error: downloaded file lacks the IANA '# Version' header; keeping current $OUTPUT_FILE" >&2
+    exit 1
+fi
 
 # Count TLDs (excluding header line)
 tld_count=$(tail -n +2 "$temp_file" | wc -l | tr -d ' ')
+
+if [[ -f "$OUTPUT_FILE" ]]; then
+    old_count=$(sed -n 's/.* - \([0-9][0-9]*\) TLDs$/\1/p' "$OUTPUT_FILE" | head -n 1)
+    # Refuse a truncated download (floor: 90% of current count)
+    if [[ -n "$old_count" ]] && (( tld_count * 100 < old_count * 90 )); then
+        echo "Error: downloaded list has $tld_count TLDs, current has $old_count; keeping current $OUTPUT_FILE" >&2
+        exit 1
+    fi
+fi
 current_date=$(date +%Y-%m-%d)
 
 echo "Generating $OUTPUT_FILE with $tld_count TLDs..."
 
 # Generate PHP file header
-cat > "$OUTPUT_FILE" << HEADER
+cat > "$out_tmp" << HEADER
 <?php
 
 /**
  * Top Level Domains list from IANA
  *
  * Updated on $current_date - $tld_count TLDs
- * Source: http://data.iana.org/TLD/tlds-alpha-by-domain.txt
+ * Source: https://data.iana.org/TLD/tlds-alpha-by-domain.txt
  *
  * Do not edit manually - use scripts/update_tlds.sh to regenerate
  */
@@ -56,10 +71,10 @@ HEADER
 tail -n +2 "$temp_file" | tr '[:upper:]' '[:lower:]' | \
     awk '{printf "'\''%s'\'', ", $0}' | \
     fold -s -w 75 | \
-    sed -e 's/^/        /g' >> "$OUTPUT_FILE"
+    sed -e 's/^/        /g' >> "$out_tmp"
 
 # Add closing bracket and special TLDs
-cat >> "$OUTPUT_FILE" << 'FOOTER'
+cat >> "$out_tmp" << 'FOOTER'
 
     ],
     // IETF/ICANN reserved special-use TLDs (not delegated by IANA)
@@ -80,5 +95,8 @@ cat >> "$OUTPUT_FILE" << 'FOOTER'
     ],
 ];
 FOOTER
+
+mv "$out_tmp" "$OUTPUT_FILE"
+chmod 644 "$OUTPUT_FILE"
 
 echo "Successfully updated $OUTPUT_FILE"

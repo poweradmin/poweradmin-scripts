@@ -46,7 +46,7 @@ usage() {
 Usage: ./scripts/e2e-sweep.sh [options]
 
   --dbs a,b,c     Databases to sweep: mysql,pgsql,sqlite (default: all three)
-  --api           Also sweep the API-backend instances (8083-8085, develop only)
+  --api           Also sweep the API-backend instances (8083-8085, master only)
   --subfolder     Also sweep the subfolder instance (8086)
   --workers N     Playwright workers per instance (default: 2; use 1 for sqlite)
   --folders "a b" Test folders to run on regular instances

@@ -1,16 +1,37 @@
 #!/bin/bash
+#
+# Run `composer format:all` (phpcbf over every source path) and put the committed
+# production vendor/ back afterwards, whatever the outcome.
 
-composer install
-chmod +x vendor/bin/*
+set -euo pipefail
 
-# Run phpcbf directly: exit code 0 = fixes applied, 1 = errors, 2 = nothing to fix
-vendor/bin/phpcbf --standard=phpcs.xml addons config index.php install lib tests dynamic_update.php
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+# vendor/ is committed in its no-dev form; dev installs dirty it and add untracked
+# packages, some as nested git clones, hence the double -f
+restore_vendor() {
+    git checkout -- vendor/ && git clean -ffdq vendor/
+}
+trap restore_vendor EXIT
+
+composer install --quiet
+
+# PHP_CodeSniffer 4.x exit codes are a bitmask (Util/ExitCode.php): 1 = fixable issues
+# remain, 2 = non-fixable issues remain, 4 = a file failed to fix, 16 = process error.
+set +e
+composer format:all
 exit_code=$?
-if [ $exit_code -eq 1 ]; then
-    echo "phpcbf encountered errors"
+set -e
+
+if (( exit_code & 16 )); then
+    echo "phpcbf encountered a process error (exit code $exit_code)" >&2
     exit 1
 fi
-
-composer install --no-dev
-./scripts/optimize-for-release.sh
-git checkout -- vendor/composer/installed.php
+if (( exit_code & 4 )); then
+    echo "phpcbf failed to fix some files (exit code $exit_code)" >&2
+    exit 1
+fi
+if (( exit_code & 2 )); then
+    echo "phpcbf: non-fixable issues remain (exit code $exit_code); run composer check:all and fix them by hand"
+fi
