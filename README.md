@@ -125,7 +125,8 @@ evaluates both over n=0..200; ru_RU and uk_UA ship different spellings of the id
 ### cleanup_obsolete_translations.py
 
 Removes entries no longer present in the `.pot`, plus obsolete blocks in both forms: gettext's `#~` lines and
-the `# OBSOLETE:` comments `merge_messages.py` writes. Matching is on the full msgid, so multi-line entries are
+the `# OBSOLETE:` comments older `merge_messages.py` runs wrote (a merge now keeps translated obsolete entries
+in the `#~` form, which `msgmerge` revives if the msgid returns). Matching is on the full msgid, so multi-line entries are
 handled correctly.
 
 Before removing anything it searches the source tree for every candidate as a complete literal. A candidate that

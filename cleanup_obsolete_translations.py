@@ -25,7 +25,7 @@ Matched shapes: 'msgid' or "msgid" (also their escaped PHP/JS source forms),
 {% trans %}msgid{% endtrans %}, and >msgid< element text.
 
 Obsolete blocks are removed in both forms: gettext's `#~` lines and the
-`# OBSOLETE:` comment form merge_messages.py writes. Counts report each form.
+`# OBSOLETE:` comment form older merge_messages.py runs wrote. Counts report each form.
 
 Entries are matched on the full msgid, so multi-line entries are compared in
 full. Comparing only a msgid's first line makes distinct entries look identical

@@ -111,6 +111,15 @@ class ObsoleteTest(unittest.TestCase):
         # no raw line starts with msgstr, so render keeps the original block
         self.assertEqual(e.render(), OBS_S)
 
+    def test_obsolete_comment_glued_to_live_entry_stays_live(self):
+        # msgmerge attaches a `# OBSOLETE:` block to the next entry as comments;
+        # treating the result as obsolete once deleted a live translation
+        glued = ('# OBSOLETE: msgid "Gone"\n# OBSOLETE: msgstr "Weg"\n'
+                 '#: lib/Foo.php:1\nmsgid "Live"\nmsgstr "Lebendig"\n')
+        e = poutil.parse_string(glued)[0]
+        self.assertFalse(e.obsolete)
+        self.assertEqual((e.msgid, e.msgstr), ('Live', 'Lebendig'))
+
 
 class EditTest(unittest.TestCase):
     def test_untouched_is_identical(self):

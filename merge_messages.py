@@ -81,7 +81,8 @@ def cleanup_obsolete(po_file):
     for entry in entries:
         if _is_obsolete_block(entry):
             if _has_translation(entry):
-                entry = re.sub(r'^#~ ', '# OBSOLETE: ', entry, flags=re.MULTILINE)
+                # Stay in gettext's #~ form: msgmerge revives it if the msgid returns,
+                # while a `# OBSOLETE:` comment would be glued onto the next live entry
                 out.append(entry + '\n\n')
                 kept += 1
             else:

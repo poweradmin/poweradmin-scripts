@@ -24,7 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _PLURAL_RE = re.compile(r'^msgstr\[(\d+)\]\s*(.*)$')
 _ESCAPE_RE = re.compile(r'\\(.)')
 _UNESCAPE = {'n': '\n', 't': '\t', 'r': '\r', '"': '"', '\\': '\\'}
-# merge_messages.py demotes translated obsolete entries to this comment form
+# Older merge_messages.py runs demoted translated obsolete entries to this comment form
 _OBSOLETE_COMMENT = '# OBSOLETE:'
 
 
@@ -160,6 +160,10 @@ class Entry:
 def _obsolete_body(lines):
     """Strip the `#~` or `# OBSOLETE:` prefix so an obsolete block parses like a
     live one. Returns None for a block that is not obsolete."""
+    # msgmerge glues a standalone `# OBSOLETE:` block onto the next live entry as
+    # comments; such a block is live, and removing it would drop a translation
+    if any(line.startswith('msgid') for line in lines):
+        return None
     if any(line.startswith('#~') for line in lines):
         prefix = '#~'
     elif any(line.startswith(_OBSOLETE_COMMENT) for line in lines):
