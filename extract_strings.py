@@ -72,12 +72,13 @@ def pot_header(ver, stamp, language=''):
 
 
 def find_files(root, args):
-    """Run find so traversal order stays stable across runs."""
+    """Matching files under root, sorted: find's order depends on the filesystem,
+    and it decides the entry order of the template and every catalogue."""
     if not os.path.isdir(os.path.join(ROOT, root)):
         return []
     out = subprocess.run(['find', root] + args, cwd=ROOT,
                          capture_output=True, text=True).stdout
-    return [line for line in out.split('\n') if line]
+    return sorted(line for line in out.split('\n') if line)
 
 
 def xgettext_php(root, dest, ver):
