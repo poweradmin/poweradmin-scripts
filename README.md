@@ -15,7 +15,16 @@ Run scripts from the project root (`./scripts/<name>`), not from inside `scripts
 ## Requirements
 
 Python 3 and GNU gettext (`xgettext`, `msgmerge`, `msgfmt`, `msguniq`, `msgattrib`, `msgen`, `msginit`) on `PATH`.
-Everything is stdlib except `translate_new_locale.py`; see `requirements.txt`.
+Everything is stdlib; there is nothing to `pip install`.
+
+## Tests
+
+```
+python3 -m unittest discover -s scripts/tests     # from the project root
+```
+
+Stdlib `unittest` over the shared parser and the gates, on in-memory fixtures. The suite never reads or writes
+the real catalogues and skips the cases that need gettext binaries when they are missing.
 
 ## Localization pipeline
 
@@ -33,6 +42,9 @@ Extraction scans `lib/**/*.php` and `install/helpers/**/*.php` with `xgettext`, 
 must sit on a single line to be picked up.
 
 Merging fills any empty `msgstr` with the English source and flags it `#, auto-english-fallback`.
+It refuses a regenerated template that has no msgids or lost more than 20% of them (a failed extraction would
+otherwise obsolete every string in all 43 catalogues), and any gettext failure restores the catalogue's backup
+and exits non-zero.
 
 ### Adding new strings to every locale
 
@@ -76,28 +88,21 @@ Reads `DIR/OUT_<locale>_*.json` and applies them behind a gate: identical placeh
 whole locale, so a bad correction can never land half-applied. Reviewers must emit JSON rather than edit
 `.po` files - parallel writes to one catalogue lose updates.
 
-### Adding a new locale by machine translation
+### Adding a new locale
 
-```
-python3 scripts/translate_new_locale.py <locale> <iso639>   # Argos, offline, resumable
-python3 scripts/fix_sentinel_leaks.py <locale>              # repair mangled placeholder sentinels
-python3 scripts/apply_locale_corrections.py <locale>        # per-locale terminology fixes
-python3 scripts/extract_failing_entries.py <locale>         # msgfmt failures -> JSON to hand-fix
-python3 scripts/fallback_to_english.py <locale>             # last resort for unrecoverable entries
-python3 scripts/compile_messages.py
-```
+The machine-translation bootstrap was removed once every shipped locale existed. Create the catalogue with
+`msginit` against `locale/i18n-template-php.pot`, add its ISO code to `plural_forms.json` if missing, then
+translate it with the round trip above.
 
-Placeholders (`%s`, HTML tags) are masked as `ZZ<n>ZZ` sentinels before translation so the engine cannot reorder or
-translate them. Some models mangle the sentinel anyway, which is what `fix_sentinel_leaks.py` repairs.
-
-`apply_locale_corrections.py` holds hand-curated per-locale substitution tables. Add a `_subs_<lang>()` function and
-register it in `SUBS_BY_LOCALE` to cover a new locale.
+`apply_locale_corrections.py` holds hand-curated per-locale substitution tables (add a `_subs_<lang>()` function
+and register it in `SUBS_BY_LOCALE`) plus repair modes: `--identifiers`, `--placeholders`, `--trailing` and
+`--pitfalls` (rules from `locale_pitfalls.json`, explained in `locale_pitfalls.md`). Every mode takes `--dry-run`.
 
 ### Checks
 
 | Script | Purpose |
 |---|---|
-| `check_translations.py` | empty and untranslated entries; exits 1 on findings |
+| `check_translations.py` | empty and untranslated entries; exits 1 on findings. Its untranslated rule is simpler than `poutil.is_untranslated()` (no fallback flag or short-word handling), so its counts can differ from the stats |
 | `check_locale_unicode.py` | mojibake, hidden Unicode, MT artifacts; `--fix` repairs in place |
 | `check_translation_stats.py` | per-locale coverage, separating real translations from English fallbacks (also `composer locale:stats`) |
 | `check_translation_integrity.py` | the damage classes - HARD ones exit 1, SOFT ones report only |
@@ -108,9 +113,10 @@ has no `scripts/` directory and is limited to what gettext alone provides. Run i
 
 ### Plural forms
 
-`plural_forms.json` is the only table of gettext plural rules; `merge_messages.py` and
-`translate_new_locale.py` read it and fail loudly on an unknown ISO code rather than defaulting to two
+`plural_forms.json` is the only table of gettext plural rules; `merge_messages.py` reads it and fails loudly on an unknown ISO code rather than defaulting to two
 forms, which is wrong for every 3-, 4-, 5- and 6-form language.
+
+`check_translation_integrity.py` also reads it, to validate each catalogue's header.
 
 Read a catalogue's rule with `poutil.header_plural_rule()`, never a regex over the raw file - 12 catalogues
 wrap the header across several quoted lines. Compare two rules with `poutil.same_plural_rule()`, which
@@ -118,15 +124,30 @@ evaluates both over n=0..200; ru_RU and uk_UA ship different spellings of the id
 
 ### cleanup_obsolete_translations.py
 
-Removes entries no longer present in the `.pot`, matching on the full msgid so multi-line entries are handled
-correctly. Flags: `--dry-run`, `--stats-only`, `--locale=`, `--module=`, `--force-check`, `--no-backup`.
-The catalogue currently has zero obsolete entries.
+Removes entries no longer present in the `.pot`, plus obsolete blocks in both forms: gettext's `#~` lines and
+the `# OBSOLETE:` comments `merge_messages.py` writes. Matching is on the full msgid, so multi-line entries are
+handled correctly.
+
+Before removing anything it searches the source tree for every candidate as a complete literal. A candidate that
+is still in use means the template is stale, and the run is refused until `extract_strings.py` regenerates it.
+
+Flags: `--dry-run`, `--stats-only`, `--verify-only`, `--skip-verify`, `--locale=`, `--module=`, `--force-check`,
+`--no-backup`. Unknown flags are rejected. `--force-check` runs `msgmerge` first; with `--dry-run` it merges a
+temp copy, never the catalogue.
+
+`harvest_module_translations.py` copies translations that exist only in `lib/Module/*/locale` into the main
+catalogues. Master and 4.5.x no longer ship module catalogues; it and the `--module=` flags stay for 4.4.x.
 
 ## Other tooling
 
-Release and maintenance helpers (`pre-release-check.sh`, `optimize-for-release.sh`, `format.sh`, `toggle_install.sh`,
-`toggle_config.sh`, `e2e-sweep.sh`, `update_*.sh`, `update_copyright.py`, migration test scripts) and `proxy_test/`,
+Release and maintenance helpers (`pre-release-check.sh`, `toggle_install.sh`, `e2e-sweep.sh`, `update_*.sh`,
+`update_*_servers.php`, `update_copyright.py`) and `proxy_test/`,
 an end to end check for `NO_PROXY` handling. See each file's header for usage.
 
-The two `test-migration-*.sh` scripts still cover `sql/` update scripts that ship today (a 4.0 install upgrading to
-current runs them in sequence), but nothing invokes them automatically - run them by hand before a release.
+- `format.sh` runs `composer format:all` with dev dependencies, then restores the committed vendor/ whatever the
+  outcome.
+- `create_sqlite_db.sh <db-file> [pdns-schema-version]` builds a new SQLite database holding the PowerDNS schema
+  (newest `sql/pdns/<N>` by default) and the Poweradmin tables, ready for the installer.
+- The data updaters (`update_tlds.sh`, `update_public_suffix.sh`, `update_rdap_servers.php`,
+  `update_whois_servers.php`) refuse a download that is empty or much smaller than the current file, and replace
+  the file atomically.
