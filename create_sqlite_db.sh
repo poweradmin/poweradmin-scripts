@@ -1,53 +1,66 @@
 #!/bin/bash
+#
+# Create a fresh SQLite database holding both the PowerDNS schema and the
+# Poweradmin tables, ready for the installer.
+#
+# Usage: ./scripts/create_sqlite_db.sh <db-file> [pdns-schema-version]
+#
+#   <db-file>              path of the database to create; must not exist yet
+#   [pdns-schema-version]  directory under sql/pdns/ (default: the newest one)
 
 set -euo pipefail
 
-# Check if the script is being run from the project root
-check_run_from_project_root() {
-    local script_name=$(basename "$0")
-    if [[ "$0" != "./scripts/$script_name" && "$0" != "scripts/$script_name" ]]; then
-        echo "Error: This script should be run from the project root as:"
-        echo "  ./scripts/$script_name"
-        echo ""
-        echo "Current run path: $0"
-        exit 1
-    fi
+usage() {
+    sed -n '6,9p' "$0" | sed 's/^# \{0,1\}//'
+    exit "${1:-1}"
 }
 
-# Check script is run from project root
-check_run_from_project_root
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && usage 0
+[[ $# -ge 1 && $# -le 2 ]] || usage
 
-DB_PATH="../../db"
-DB_FILE="powerdns.db"
-SQLITE_BIN=sqlite3
-SCHEMA_FILE="../sql/pdns/47/schema.sqlite3.sql"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DB_FILE="$1"
+# Resolve against the caller's cwd before anything changes directory
+[[ "$DB_FILE" == /* ]] || DB_FILE="$PWD/$DB_FILE"
 
-# Check if schema file exists
-if ! command -v $SQLITE_BIN &> /dev/null; then
-    echo "Error: sqlite3 is not installed"
+if [[ $# -eq 2 ]]; then
+    PDNS_VERSION="$2"
+else
+    PDNS_VERSION="$(find "$PROJECT_ROOT/sql/pdns" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort -n | tail -1)"
+fi
+
+PDNS_SCHEMA="$PROJECT_ROOT/sql/pdns/$PDNS_VERSION/schema.sqlite3.sql"
+POWERADMIN_SCHEMA="$PROJECT_ROOT/sql/poweradmin-sqlite-db-structure.sql"
+
+if ! command -v sqlite3 > /dev/null; then
+    echo "Error: sqlite3 is not installed" >&2
     exit 1
 fi
 
-# Check if schema file exists
-if [ ! -f "$SCHEMA_FILE" ]; then
-    echo "Error: Schema file not found: $SCHEMA_FILE"
+for schema in "$PDNS_SCHEMA" "$POWERADMIN_SCHEMA"; do
+    if [[ ! -f "$schema" ]]; then
+        echo "Error: schema file not found: $schema" >&2
+        exit 1
+    fi
+done
+
+if [[ -e "$DB_FILE" ]]; then
+    echo "Error: database file already exists: $DB_FILE" >&2
     exit 1
 fi
 
-# Check if directory exists
-if [ ! -d "$DB_PATH" ]; then
-    mkdir -p "$DB_PATH"
-fi
+mkdir -p "$(dirname "$DB_FILE")"
 
-# Check if db file exists
-if [ -e "$DB_PATH/$DB_FILE" ]; then
-    echo "Error: database file <$DB_PATH/$DB_FILE> already exists!"
-    exit 1
-fi
+# Build in a temp file so a failed import never leaves a half-created database behind
+TMP_DB="$(mktemp "$(dirname "$DB_FILE")/.create_sqlite_db.XXXXXX")"
+trap 'rm -f "$TMP_DB"' EXIT
 
-# Import db schema and data
-"$SQLITE_BIN" "$DB_PATH/$DB_FILE" < "$SCHEMA_FILE"
+sqlite3 -bail "$TMP_DB" < "$PDNS_SCHEMA"
+sqlite3 -bail "$TMP_DB" < "$POWERADMIN_SCHEMA"
 
-# Change access rights
-chmod 777 $DB_PATH
-chmod 666 $DB_PATH/$DB_FILE
+chmod 664 "$TMP_DB"
+mv "$TMP_DB" "$DB_FILE"
+trap - EXIT
+
+echo "Created $DB_FILE (PowerDNS schema $PDNS_VERSION + Poweradmin tables)"
+echo "The web server user needs write access to the file and its directory."
