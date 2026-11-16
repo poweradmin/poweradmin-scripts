@@ -154,5 +154,25 @@ class ExcludedTest(unittest.TestCase):
         self.assertFalse(poutil.is_excluded('DNS', []))
 
 
+class BackupTest(unittest.TestCase):
+    def test_backups_in_the_same_second_do_not_collide(self):
+        import tempfile
+        from unittest import mock
+        fixed = poutil.datetime(2026, 1, 2, 3, 4, 5)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, 'messages.po')
+            with open(path, 'w') as fh:
+                fh.write('one')
+            with mock.patch.object(poutil, 'datetime') as dt:
+                dt.now.return_value = fixed
+                first = poutil.backup(path)
+                with open(path, 'w') as fh:
+                    fh.write('two')
+                second = poutil.backup(path)
+            self.assertNotEqual(first, second)
+            self.assertEqual(open(first).read(), 'one')
+            self.assertEqual(open(second).read(), 'two')
+
+
 if __name__ == '__main__':
     unittest.main()

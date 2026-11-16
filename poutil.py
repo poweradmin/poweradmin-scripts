@@ -282,8 +282,15 @@ def render(entries):
 
 
 def backup(path):
-    """Timestamped copy alongside the original. Returns the backup path."""
-    dest = f"{path}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    """Timestamped copy alongside the original. Returns the backup path.
+
+    A second backup within the same second gets a numeric suffix instead of
+    overwriting the first."""
+    base = f"{path}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    dest, n = base, 1
+    while os.path.exists(dest):
+        dest = f'{base}_{n}'
+        n += 1
     shutil.copy2(path, dest)
     return dest
 
