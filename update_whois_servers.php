@@ -104,9 +104,8 @@ function fetchTldList(): array
 
     $html = fetchUrl(IANA_ROOT_DB_URL);
 
-    // Parse the HTML to extract TLD links
-    // TLDs are in links like /domains/root/db/com.html
-    preg_match_all('/<a href="\/domains\/root\/db\/([^"]+)\.html"/', $html, $matches);
+    // TLD links read /domains/root/db/com; older pages added a .html suffix
+    preg_match_all('/<a href="\/domains\/root\/db\/([^"\/.]+)(?:\.html)?"/', $html, $matches);
 
     $tlds = array_unique($matches[1]);
     sort($tlds);
