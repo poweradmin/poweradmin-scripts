@@ -174,6 +174,23 @@ class EditTest(unittest.TestCase):
                          doc(FUZZY, '#, auto-english-fallback\nmsgid "Cancel"\nmsgstr "X"',
                              tail=''))
 
+    def test_add_flag_joins_existing_line(self):
+        e = poutil.parse_string(FUZZY)[0]
+        self.assertTrue(e.add_flags('auto-english-fallback'))
+        self.assertEqual(e.render(), '#, fuzzy, auto-english-fallback\nmsgid "Save"\nmsgstr "Speichern"')
+
+    def test_add_flag_after_references(self):
+        e = poutil.parse_string('# note\n#: a.php:1\n#| msgid "Old"\nmsgid "A"\nmsgstr "A"')[0]
+        e.add_flags('auto-english-fallback')
+        self.assertEqual(e.render(), '# note\n#: a.php:1\n#, auto-english-fallback\n'
+                                     '#| msgid "Old"\nmsgid "A"\nmsgstr "A"')
+
+    def test_add_flag_without_comments(self):
+        e = poutil.parse_string('msgid "A"\nmsgstr "A"')[0]
+        e.add_flags('auto-english-fallback')
+        self.assertEqual(e.render(), '#, auto-english-fallback\nmsgid "A"\nmsgstr "A"')
+        self.assertFalse(e.add_flags('auto-english-fallback'))
+
     def test_line_spans(self):
         entries = poutil.parse_string(doc(FUZZY, FALLBACK, tail=''))
         self.assertEqual(poutil.line_spans(entries), [(1, 3), (5, 7)])

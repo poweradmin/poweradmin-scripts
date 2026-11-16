@@ -114,18 +114,36 @@ class Entry:
         self._flags_dirty = True
         return True
 
+    def add_flags(self, *names):
+        """Append flags not already present. Returns True when any was added."""
+        extra = [n for n in names if n not in self.flags]
+        if not extra:
+            return False
+        self.flags = self.flags + extra
+        self._dirty = True
+        self._flags_dirty = True
+        return True
+
     def _render_head(self, lines):
         """Comment/msgid portion, with the flag line rewritten when flags changed."""
         if not self._flags_dirty:
             return lines
         out = []
+        placed = False
         for line in lines:
             if line.strip().startswith('#,'):
                 if self.flags:
                     out.append('#, ' + ', '.join(self.flags))
+                placed = True
                 # an empty flag list means the line is dropped entirely
             else:
+                if not placed and self.flags and (not line.startswith('#') or line.startswith('#|')):
+                    # gettext order: comments and references, then flags, then #| and msgid
+                    out.append('#, ' + ', '.join(self.flags))
+                    placed = True
                 out.append(line)
+        if not placed and self.flags:
+            out.append('#, ' + ', '.join(self.flags))
         return out
 
     @property

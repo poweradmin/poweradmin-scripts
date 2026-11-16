@@ -287,6 +287,31 @@ def fill_english_fallbacks(po, english_trans):
     return ''.join(out)
 
 
+FALLBACK_FLAG = 'auto-english-fallback'
+
+
+def fallback_msgids(po):
+    """msgids carrying the fallback flag; msgmerge drops flags it does not know."""
+    return {e.msgid for e in poutil.parse(po)
+            if not e.obsolete and not e.is_header and FALLBACK_FLAG in e.flags}
+
+
+def restore_fallback_flags(po, msgids):
+    """Re-flag the entries in msgids whose msgstr is still the English text."""
+    entries = poutil.parse(po)
+    restored = 0
+    for e in entries:
+        if e.obsolete or e.is_header or e.msgid not in msgids or FALLBACK_FLAG in e.flags:
+            continue
+        english = {e.msgid, e.msgid_plural} if e.msgid_plural else {e.msgid}
+        values = set(e.plurals.values()) if e.plurals else {e.msgstr}
+        if values <= english and e.add_flags(FALLBACK_FLAG):
+            restored += 1
+    if restored:
+        poutil.write(po, entries)
+    print(f'  - Restored the {FALLBACK_FLAG} marker on {restored} existing fallbacks')
+
+
 def fix_locale_header(po, locale):
     content = read(po)
     code = locale.split('_')[0].lower()
@@ -311,6 +336,7 @@ def update_locale(locale, english_trans):
     bak = po + '.bak'
     shutil.copyfile(po, bak)
 
+    flagged = fallback_msgids(po)
     tmp = po + '.tmp'
     result = run(['msgmerge', '--no-fuzzy-matching', '--quiet', po, TEMPLATE, '-o', tmp])
     if result.returncode != 0 or not os.path.isfile(tmp):
@@ -324,6 +350,7 @@ def update_locale(locale, english_trans):
     filled = fill_english_fallbacks(po, english_trans)
     if filled.strip():
         write(po, filled)
+        restore_fallback_flags(po, flagged)
         if not valid(po):
             print('  - Warning: File has syntax issues, attempting to fix...')
             fix_locale_header(po, locale)
