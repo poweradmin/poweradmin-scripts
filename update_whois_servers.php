@@ -169,12 +169,18 @@ function extractWhoisServer(string $response): ?string
 /**
  * Check if a WHOIS server is reachable
  */
-function isWhoisServerReachable(string $server): bool
+function isWhoisServerReachable(string $server, int $attempts = 3): bool
 {
-    $socket = @fsockopen($server, 43, $errno, $errstr, 3);
-    if ($socket) {
-        fclose($socket);
-        return true;
+    // One missed connect once dropped seven live servers, so retry before giving up
+    for ($i = 0; $i < $attempts; $i++) {
+        if ($i > 0) {
+            sleep(1);
+        }
+        $socket = @fsockopen($server, 43, $errno, $errstr, 3);
+        if ($socket) {
+            fclose($socket);
+            return true;
+        }
     }
     return false;
 }
