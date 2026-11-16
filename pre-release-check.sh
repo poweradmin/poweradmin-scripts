@@ -231,6 +231,9 @@ if command -v msgfmt &> /dev/null; then
         if python3 scripts/extract_strings.py > /dev/null 2>&1; then
             if diff -q <(grep -v '^"POT-Creation-Date:' "$POT_BACKUP") <(grep -v '^"POT-Creation-Date:' "$POT_FILE") > /dev/null; then
                 pass ".pot template is up to date"
+            elif diff -q <(grep -v -e '^"POT-Creation-Date:' -e '^#:' "$POT_BACKUP") <(grep -v -e '^"POT-Creation-Date:' -e '^#:' "$POT_FILE") > /dev/null; then
+                pot_changed=true
+                warn ".pot source references moved, msgids unchanged (run: python3 scripts/extract_strings.py)"
             else
                 pot_changed=true
                 fail ".pot template is outdated (run: python3 scripts/extract_strings.py)"
@@ -293,6 +296,12 @@ if command -v msgfmt &> /dev/null; then
         if [[ ! -f "$mo_file" ]]; then
             fail "Missing .mo file: $mo_file"
             mo_outdated=true
+        elif command -v msgfmt &> /dev/null; then
+            # Compare content: a fresh checkout leaves mtimes in arbitrary order
+            if ! msgfmt -o - "$po_file" | cmp -s - "$mo_file"; then
+                fail "Outdated .mo file: $mo_file"
+                mo_outdated=true
+            fi
         elif [[ "$po_file" -nt "$mo_file" ]]; then
             fail "Outdated .mo file: $mo_file"
             mo_outdated=true
