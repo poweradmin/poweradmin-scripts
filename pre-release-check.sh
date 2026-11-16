@@ -270,7 +270,7 @@ if command -v msgfmt &> /dev/null; then
 
             if [[ "$merged_count" -gt "$orig_count" ]]; then
                 new_entries=$((merged_count - orig_count))
-                fail "$locale_name: $new_entries strings missing from .pot template (run: msgmerge --update)"
+                fail "$locale_name: $new_entries template strings missing from the .po (run: python3 scripts/merge_messages.py)"
                 po_out_of_sync=true
             fi
         done
@@ -278,13 +278,12 @@ if command -v msgfmt &> /dev/null; then
         if ! $po_out_of_sync; then
             pass "All .po files in sync with .pot template"
         elif $FIX_MODE; then
-            for po_file in locale/*/LC_MESSAGES/messages.po; do
-                [[ -f "$po_file" ]] || continue
-                locale_name=$(basename "$(dirname "$(dirname "$po_file")")")
-                [[ "$locale_name" == "en_EN" ]] && continue
-                msgmerge --update --quiet "$po_file" locale/i18n-template-php.pot 2>/dev/null
-            done
-            info "Fixed: all .po files merged with .pot template"
+            # Not raw msgmerge: it rewraps, fuzzy-matches, drops the fallback flags and leaves .po~ files
+            if python3 scripts/merge_messages.py > /dev/null 2>&1; then
+                info "Fixed: .po files merged with the template (review and commit locale/)"
+            else
+                fail "python3 scripts/merge_messages.py failed; run it by hand to see why"
+            fi
         fi
     fi
 
